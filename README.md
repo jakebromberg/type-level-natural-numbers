@@ -1,2 +1,2 @@
 # type-level-natural-numbers
-In which we can perform arthmetic operations at the type level in Swift
+In which we perform arthmetic operations on types themselves in Swift
