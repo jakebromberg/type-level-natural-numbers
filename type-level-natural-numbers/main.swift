@@ -2,42 +2,62 @@ protocol Natural {
     static var Predecessor : Natural.Type { get }
 }
 
+enum Zero : Natural {
+    static var Predecessor: Natural.Type { return self }
+}
+
+let Zilch = Zero.self
+
+assert(Zilch == Zilch)
+assert(Zilch.Predecessor == Zilch)
+
 enum Positive<ConcretePredecessor: Natural> : Natural {
     static var Predecessor: Natural.Type { return ConcretePredecessor.self }
 }
 
-enum Zero : Natural {
-    static var Predecessor: Natural.Type { return self }
+let One = Positive<Zero>.self
+
+assert(One == One)
+assert(One != Zilch)
+assert(One.Predecessor == Zilch)
+
+let Two = Positive<Positive<Zero>>.self
+
+assert(Two != One)
+assert(Two.Predecessor == One)
+
+func +(lhs: Zero.Type, rhs: Zero.Type) -> Zero.Type {
+    return Zero.self
 }
+
+assert(Zilch + Zilch == Zilch)
+
+func +<T: Natural>(lhs: Zero.Type, rhs: T.Type) -> T.Type {
+    return T.self
+}
+
+assert(Zilch + One == One)
+
+func +<T: Natural>(lhs: T.Type, rhs: Zero.Type) -> T.Type {
+    return T.self
+}
+
+assert(One + Zilch == One)
 
 extension Natural {
     static var Successor: Natural.Type { return Positive<Self>.self }
 }
 
-let Zilch = Zero.self
-let One = Positive<Zero>.self
-let Two = Positive<Positive<Zero>>.self
-
-assert(One == Two.Predecessor)
+assert(Zilch.Successor == One)
 assert(One.Successor == Two)
 
 func +(lhs: Natural.Type, rhs: Natural.Type) -> Natural.Type {
     if lhs == Zero.self {
         return rhs
-    } else if rhs == Zero.self {
-        return lhs
     }
     
     return (lhs.Predecessor + rhs.Successor)
 }
 
-assert(Zilch + Zilch == Zilch)
-assert(Zilch + One == One)
-assert(One + Zilch == One)
-assert(Zilch + One == One)
-assert(One + Zilch == One)
-
-let Three = Two.Successor
-let Four = Three.Successor
-
-assert(Two + Two == Four)
+assert(One + Two == Two.Successor)
+assert(One.Predecessor + One == One)
