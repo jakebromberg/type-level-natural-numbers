@@ -61,3 +61,25 @@ func +(lhs: Natural.Type, rhs: Natural.Type) -> Natural.Type {
 
 assert(One + Two == Two.Successor)
 assert(One.Predecessor + One == One)
+
+func <(lhs: Natural.Type, rhs: Natural.Type) -> Bool {
+    if lhs == rhs {
+        return false
+    }
+    
+    if lhs == Zero.self {
+        return true
+    } else if rhs == Zero.self {
+        return false
+    }
+    
+    return (lhs.Predecessor < rhs.Predecessor)
+}
+
+assert(One < Two)
+
+func >(lhs: Natural.Type, rhs: Natural.Type) -> Bool {
+    return !(lhs.Predecessor < rhs.Predecessor)
+}
+
+assert(Two > One)
