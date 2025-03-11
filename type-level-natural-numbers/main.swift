@@ -1,66 +1,56 @@
 protocol Natural {
-    static var Predecessor : Natural.Type { get }
+    static var predecessor: Natural.Type { get }
 }
 
-enum Zero : Natural {
-    static var Predecessor: Natural.Type { return self }
+enum Zero: Natural {
+    static var predecessor: Natural.Type { return self }
 }
 
-let Zilch = Zero.self
+let Zip = Zero.self
 
-assert(Zilch == Zilch)
-assert(Zilch.Predecessor == Zilch)
+assert(Zip == Zip)
+assert(Zip.predecessor == Zip)
 
-enum Positive<ConcretePredecessor: Natural> : Natural {
-    static var Predecessor: Natural.Type { return ConcretePredecessor.self }
+enum AddOne<Predecessor: Natural>: Natural {
+    static var predecessor: Natural.Type { Predecessor.self }
 }
 
-let One = Positive<Zero>.self
+let One = AddOne<Zero>.self
 
 assert(One == One)
-assert(One != Zilch)
-assert(One.Predecessor == Zilch)
+assert(One != Zip)
+assert(One.predecessor == Zip)
 
-let Two = Positive<Positive<Zero>>.self
+let Two = AddOne<AddOne<Zero>>.self
 
 assert(Two != One)
-assert(Two.Predecessor == One)
+assert(Two.predecessor == One)
 
-func +(lhs: Zero.Type, rhs: Zero.Type) -> Zero.Type {
-    return Zero.self
-}
+assert(Zip + Zip == Zip)
+assert(Zip + One == One)
 
-assert(Zilch + Zilch == Zilch)
-
-func +<T: Natural>(lhs: Zero.Type, rhs: T.Type) -> T.Type {
-    return T.self
-}
-
-assert(Zilch + One == One)
-
-func +<T: Natural>(lhs: T.Type, rhs: Zero.Type) -> T.Type {
-    return T.self
-}
-
-assert(One + Zilch == One)
+assert(One + Zip == One)
 
 extension Natural {
-    static var Successor: Natural.Type { return Positive<Self>.self }
+    static var successor: Natural.Type { AddOne<Self>.self }
 }
 
-assert(Zilch.Successor == One)
-assert(One.Successor == Two)
+assert(Zip.successor == One)
+assert(One.successor == Two)
 
 func +(lhs: Natural.Type, rhs: Natural.Type) -> Natural.Type {
     if lhs == Zero.self {
         return rhs
+    } else if rhs == Zero.self {
+        return lhs
     }
     
-    return (lhs.Predecessor + rhs.Successor)
+    return lhs.predecessor + rhs.successor
 }
 
-assert(One + Two == Two.Successor)
-assert(One.Predecessor + One == One)
+let Three = Two.successor
+
+assert(One + Two == Three)
 
 func <(lhs: Natural.Type, rhs: Natural.Type) -> Bool {
     if lhs == rhs {
@@ -73,13 +63,19 @@ func <(lhs: Natural.Type, rhs: Natural.Type) -> Bool {
         return false
     }
     
-    return (lhs.Predecessor < rhs.Predecessor)
+    return lhs.predecessor < rhs.predecessor
 }
 
+assert(Zip < Zip)
 assert(One < Two)
+assert(!(Two < One))
 
-func >(lhs: Natural.Type, rhs: Natural.Type) -> Bool {
-    return !(lhs.Predecessor < rhs.Predecessor)
+extension Natural {
+    static func >(lhs: Self.Type, rhs: Natural.Type) -> Bool {
+        rhs < lhs
+    }
 }
 
+assert(Two > One)
+assert(!(Zip > Zip))
 assert(Two > One)
