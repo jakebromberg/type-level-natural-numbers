@@ -1,2 +1,2 @@
 # type-level-natural-numbers
-In which we perform arthmetic operations on types themselves in Swift
+Abusing the type system to define the Naturals and perform arithmetic and boolean operations over them. 
