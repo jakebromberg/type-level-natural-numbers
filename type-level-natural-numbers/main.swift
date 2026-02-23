@@ -47,18 +47,10 @@ assert(Zip + One == One)
 assert(One + Zip == One)
 
 func +(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type {
-    if lhs == Zero.self {
-        return rhs
-    }
-    
-    if rhs == Zero.self {
-        return lhs
-    }
-    
-    let plhs: any Positive.Type = lhs as! any Positive.Type
-    let prhs: any Positive.Type = rhs as! any Positive.Type
-    
-    return plhs + prhs
+    if lhs == Zero.self { return rhs }
+    if rhs == Zero.self { return lhs }
+    let plhs = lhs as! any Positive.Type
+    return plhs.predecessor + rhs.successor
 }
 
 
@@ -130,14 +122,6 @@ extension Natural {
 
     static func *(lhs: Self.Type, rhs: Zero.Type) -> Zero.Type {
         Zero.self
-    }
-}
-
-extension Positive {
-    static func *(lhs: Self.Type, rhs: any Natural.Type) -> any Natural.Type {
-        if rhs == Zero.self { return Zero.self }
-        if lhs.predecessor == Zero.self { return rhs } // 1 * m = m
-        return lhs.predecessor * rhs + rhs             // n * m = (n-1) * m + m
     }
 }
 
