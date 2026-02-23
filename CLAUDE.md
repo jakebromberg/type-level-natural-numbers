@@ -57,11 +57,11 @@ The Xcode target is self-contained -- it does not depend on the SPM package. It 
 ## Code conventions
 
 - Integers are represented as types (`Zero`, `AddOne<N>`, `SubOne<N>`) conforming to protocols in the `Integer` hierarchy.
-- The protocol hierarchy is: `Integer` (root) -> `Natural`/`Nonpositive` -> `Positive`/`Negative`. `Zero` conforms to both `Natural` and `Nonpositive`.
-- Runtime values are existential metatypes (`any Integer.Type`, `any Natural.Type`, `any Positive.Type`, etc.).
-- Operator overloads use the tightest return type possible (e.g. `Positive + Natural -> Positive`).
-- Recursive definitions follow Peano-style induction: base case on `Zero`, inductive step via `predecessor`/`successor`.
-- Zero is detected by casting (`as? any Positive.Type`, `as? any Negative.Type`) rather than optional checks.
+- The protocol hierarchy has 3 protocols: `Integer` (root) -> `Natural` and `Nonpositive`. `Zero` conforms to both `Natural` and `Nonpositive`.
+- Runtime values are existential metatypes (`any Integer.Type`, `any Natural.Type`, `any Nonpositive.Type`).
+- Operator overloads use the tightest return type available (e.g. `Natural + Natural -> Natural`, `Integer + Integer -> Integer`).
+- All operators use right-hand recursion (standard Peano form): base case when `rhs == Zero`, inductive step peels the successor off the right operand.
+- Zero is detected by `== Zero.self` comparison. Non-zero naturals are detected by `as? any Natural.Type` cast after excluding zero.
 - Assertions serve as inline tests and are grouped immediately after the code they exercise.
 
 ## Branching
@@ -70,3 +70,4 @@ The Xcode target is self-contained -- it does not depend on the SPM package. It 
 - `worktree-type-level-arithmetic` -- extends master with compile-time type-level arithmetic (`Sum`, `Product`, `NaturalExpression`, `assertEqual`).
 - `worktree-integer-extension` -- extends master with negative numbers via `SubOne`, negation, subtraction, and integer-level arithmetic.
 - `worktree-macros` -- extends integer-extension with Swift macros (`#Peano`, `#PeanoType`, `#PeanoAssert`) for compile-time arithmetic.
+- `worktree-simplify-protocols` -- extends macros: simplifies to 3 protocols, switches to right-hand recursion, adds `<=`/`>=`.
