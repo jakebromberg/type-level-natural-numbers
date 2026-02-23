@@ -98,3 +98,13 @@ assert(MinusOne < One)
 assert(!(One < MinusOne))
 assert(One > MinusOne)
 assert(MinusOne > MinusTwo)
+
+// MARK: - Compile-time type equality assertions (verified at build time)
+
+assertEqual(#PeanoType(0), #Peano(0))
+assertEqual(#PeanoType(1 + 2), #Peano(3))
+assertEqual(#PeanoType(2 * 3), #Peano(6))
+assertEqual(#PeanoType(2 * 3 - 1), #Peano(5))
+assertEqual(#PeanoType(3 - 5), #Peano(-2))
+assertEqual(#PeanoType(0 - 2), #Peano(-2))
+assertEqual(#PeanoType(1 * 1), #Peano(1))
