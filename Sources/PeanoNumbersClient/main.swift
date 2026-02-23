@@ -45,6 +45,17 @@ assert(!(Two < One))
 assert(Two > One)
 assert(!(Zip > Zip))
 
+// MARK: - Comparison (<=, >=)
+
+assert(Zip <= Zip)
+assert(One <= Two)
+assert(Two <= Two)
+assert(!(Two <= One))
+assert(Zip >= Zip)
+assert(Two >= One)
+assert(Two >= Two)
+assert(!(One >= Two))
+
 // MARK: - Multiplication
 
 assert(Zip * One == Zip)
@@ -98,6 +109,15 @@ assert(MinusOne < One)
 assert(!(One < MinusOne))
 assert(One > MinusOne)
 assert(MinusOne > MinusTwo)
+
+// MARK: - Integer comparison (<=, >=)
+
+assert(MinusOne <= Zip)
+assert(MinusOne <= MinusOne)
+assert(!(Zip <= MinusOne))
+assert(Zip >= MinusOne)
+assert(MinusOne >= MinusOne)
+assert(!(MinusOne >= Zip))
 
 // MARK: - Compile-time type equality assertions (verified at build time)
 
