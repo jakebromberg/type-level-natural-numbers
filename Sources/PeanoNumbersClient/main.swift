@@ -2,18 +2,17 @@ import PeanoNumbers
 
 // MARK: - Convenience bindings
 
-let Zip = Zero.self
+let Zip        = #Peano(0)
+let One        = #Peano(1)
+let Two        = #Peano(2)
+let Three      = #Peano(3)
+let Four       = #Peano(4)
+let Five       = #Peano(5)
+let Six        = #Peano(6)
 
-let One      = AddOne<Zero>.self
-let Two      = One.successor
-let Three    = Two.successor
-let Four     = Three.successor
-let Five     = Four.successor
-let Six      = Five.successor
-
-let MinusOne   = SubOne<Zero>.self
-let MinusTwo   = SubOne<SubOne<Zero>>.self
-let MinusThree = SubOne<SubOne<SubOne<Zero>>>.self
+let MinusOne   = #Peano(-1)
+let MinusTwo   = #Peano(-2)
+let MinusThree = #Peano(-3)
 
 // MARK: - Basic identity assertions
 
@@ -29,7 +28,7 @@ assert(MinusOne != One)
 assert(MinusOne.successor == Zip)
 assert(MinusTwo.successor == MinusOne)
 
-// MARK: - Natural addition
+// MARK: - Addition
 
 assert(Zip + Zip == Zip)
 assert(Zip + One == One)
@@ -38,7 +37,7 @@ assert(One + Two == Three)
 assert(Two + Two == Four)
 assert(Two + Zip == Two)
 
-// MARK: - Natural comparison
+// MARK: - Comparison
 
 assert(!(Zip < Zip))
 assert(One < Two)
@@ -46,10 +45,10 @@ assert(!(Two < One))
 assert(Two > One)
 assert(!(Zip > Zip))
 
-// MARK: - Natural multiplication
+// MARK: - Multiplication
 
-assert(Zero.self * One == Zero.self)
-assert(One * Zero.self == Zero.self)
+assert(Zip * One == Zip)
+assert(One * Zip == Zip)
 assert(One * Two == Two)
 assert(Two * Two == Four)
 assert(Two * Three == Six)
