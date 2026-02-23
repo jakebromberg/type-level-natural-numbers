@@ -71,3 +71,4 @@ The Xcode target is self-contained -- it does not depend on the SPM package. It 
 - `worktree-integer-extension` -- extends master with negative numbers via `SubOne`, negation, subtraction, and integer-level arithmetic.
 - `worktree-macros` -- extends integer-extension with Swift macros (`#Peano`, `#PeanoType`, `#PeanoAssert`) for compile-time arithmetic.
 - `worktree-simplify-protocols` -- extends macros: simplifies to 3 protocols, switches to right-hand recursion, adds `<=`/`>=`.
+- `worktree-arithmetic-extensions` -- extends simplify-protocols: adds exponentiation, monus, division/modulo, factorial, fibonacci, GCD; extends macro evaluator.

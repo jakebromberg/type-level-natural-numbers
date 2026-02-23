@@ -259,6 +259,105 @@ assert(Zip >= MinusOne)
 assert(MinusOne >= MinusOne)
 assert(!(MinusOne >= Zip))
 
+// MARK: - Exponentiation (right-hand recursion on exponent)
+
+infix operator ** : MultiplicationPrecedence
+
+func **(base: any Natural.Type, exp: any Natural.Type) -> any Natural.Type {
+    if exp == Zero.self { return AddOne<Zero>.self }
+    return (base ** (exp.predecessor as! any Natural.Type)) * base
+}
+
+func **(base: any Integer.Type, exp: any Natural.Type) -> any Integer.Type {
+    if exp == Zero.self { return AddOne<Zero>.self }
+    return (base ** (exp.predecessor as! any Natural.Type)) * base
+}
+
+assert(Two ** Three == AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>>>>.self)
+assert(Three ** Two == AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>>>>>.self)
+assert(Two ** Zip == One)
+assert(Zip ** Five == Zip)
+assert(One ** Six == One)
+
+// MARK: - Monus (truncated subtraction)
+
+infix operator .- : AdditionPrecedence
+
+func .-(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type {
+    if rhs == Zero.self { return lhs }
+    if lhs == Zero.self { return Zero.self }
+    return (lhs.predecessor as! any Natural.Type) .- (rhs.predecessor as! any Natural.Type)
+}
+
+assert(Five .- Three == Two)
+assert(Three .- Five == Zip)
+assert(Three .- Zip == Three)
+assert(Zip .- Five == Zip)
+assert(Four .- Four == Zip)
+
+// MARK: - Division and modulo
+
+func divmod(_ a: any Natural.Type, _ b: any Natural.Type) -> (any Natural.Type, any Natural.Type) {
+    if a < b { return (Zero.self, a) }
+    let (q, r) = divmod(a .- b, b)
+    return (q + AddOne<Zero>.self, r)
+}
+
+func /(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type {
+    divmod(lhs, rhs).0
+}
+
+func %(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type {
+    divmod(lhs, rhs).1
+}
+
+assert(Six / Two == Three)
+assert(Six / Four == One)
+assert(Six % Four == Two)
+assert(Five % Three == Two)
+assert(Four / Two == Two)
+assert(Five / One == Five)
+assert(Zip / Three == Zip)
+
+// MARK: - Factorial
+
+func factorial(_ n: any Natural.Type) -> any Natural.Type {
+    if n == Zero.self { return AddOne<Zero>.self }
+    return n * factorial(n.predecessor as! any Natural.Type)
+}
+
+assert(factorial(Zip) == One)
+assert(factorial(One) == One)
+assert(factorial(Three) == Six)
+
+// MARK: - Fibonacci
+
+func fibonacci(_ n: any Natural.Type) -> any Natural.Type {
+    func helper(_ n: any Natural.Type, _ a: any Natural.Type, _ b: any Natural.Type) -> any Natural.Type {
+        if n == Zero.self { return a }
+        return helper(n.predecessor as! any Natural.Type, b, a + b)
+    }
+    return helper(n, Zero.self, AddOne<Zero>.self)
+}
+
+assert(fibonacci(Zip) == Zip)
+assert(fibonacci(One) == One)
+assert(fibonacci(Two) == One)
+assert(fibonacci(Three) == Two)
+
+// MARK: - GCD
+
+func gcd(_ a: any Natural.Type, _ b: any Natural.Type) -> any Natural.Type {
+    if b == Zero.self { return a }
+    return gcd(b, a % b)
+}
+
+assert(gcd(Six, Four) == Two)
+assert(gcd(Six, Three) == Three)
+assert(gcd(Five, Three) == One)
+assert(gcd(Four, Six) == Two)
+assert(gcd(Six, Zero.self) == Six)
+
 // MARK: - Type-level arithmetic
 
 /// A type-level computation that evaluates to a `Natural` type.
