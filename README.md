@@ -267,7 +267,9 @@ quaternion(a, b, c, d) // quaternion: a + bi + cj + dk (stored as ((a,b), (c,d))
 
 ### Type-level arithmetic (Xcode target)
 
-A parallel compile-time arithmetic system lets the Swift type checker verify equalities statically. `Sum<L, R>` and `Product<L, R>` implement type-level addition and multiplication, verified via `assertEqual<T: Natural>(_: T.Type, _: T.Type)`.
+The Xcode target includes a parallel compile-time arithmetic system that uses Swift's type checker to verify equalities statically, without macros.
+
+`NaturalExpression` is a protocol with an associated `Result: Natural` type. `Sum<L, R>` and `Product<L, R>` implement type-level addition and multiplication, verified via `assertEqual<T: Natural>(_: T.Type, _: T.Type)` -- a function whose empty body means the assertion is the compilation itself.
 
 Due to Swift's conditional conformance limitations, `Sum` supports L up to N3, and `Product` enumerates specific (L, R) pairs for L >= 2.
 
