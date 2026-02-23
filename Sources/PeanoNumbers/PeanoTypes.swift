@@ -7,17 +7,13 @@ public protocol Integer {
     static var predecessor: Predecessor.Type { get }
 }
 
-public protocol Natural: Integer where Successor: Positive {}
+public protocol Natural: Integer where Successor: Natural {}
 
-public protocol Positive: Natural where Predecessor: Natural {}
-
-public protocol Nonpositive: Integer where Predecessor: Negative {}
-
-public protocol Negative: Nonpositive where Successor: Nonpositive {}
+public protocol Nonpositive: Integer where Predecessor: Nonpositive {}
 
 // MARK: - Types
 
-public enum SubOne<Successor: Nonpositive>: Negative {
+public enum SubOne<Successor: Nonpositive>: Nonpositive {
     public typealias Predecessor = SubOne<Self>
     public static var successor: Successor.Type { Successor.self }
     public static var predecessor: SubOne<Self>.Type { SubOne<Self>.self }
@@ -36,52 +32,40 @@ public extension Zero {
     }
 }
 
-public enum AddOne<Predecessor: Natural>: Positive {
+public enum AddOne<Predecessor: Natural>: Natural {
     public typealias Successor = AddOne<Self>
     public static var predecessor: Predecessor.Type { Predecessor.self }
     public static var successor: AddOne<Self>.Type { AddOne<Self>.self }
 }
 
-// MARK: - Natural addition
+// MARK: - Natural addition (right-hand recursion)
 
 public func +(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type {
-    guard let pos = lhs as? any Positive.Type else { return rhs }  // 0 + m = m
-    if rhs == Zero.self { return lhs }                              // n + 0 = n
-    return pos.predecessor + rhs.successor                          // (n+1) + m = n + (m+1)
+    if rhs == Zero.self { return lhs }                              // a + 0 = a
+    return (lhs + (rhs.predecessor as! any Natural.Type)).successor // a + S(b) = S(a + b)
 }
 
-public func +(lhs: any Natural.Type, rhs: any Positive.Type) -> any Positive.Type {
-    guard let pos = lhs as? any Positive.Type else { return rhs }
-    return pos.predecessor + rhs.successor
-}
-
-public func +(lhs: any Positive.Type, rhs: any Natural.Type) -> any Positive.Type {
-    if rhs == Zero.self {
-        return lhs
-    }
-    return lhs.predecessor + rhs.successor
-}
-
-public func +(lhs: any Positive.Type, rhs: any Positive.Type) -> any Positive.Type {
-    return lhs.predecessor + rhs.successor
-}
-
-// MARK: - Natural comparison
+// MARK: - Natural comparison (right-hand recursion)
 
 public func <(lhs: any Natural.Type, rhs: any Natural.Type) -> Bool {
-    switch (lhs as? any Positive.Type, rhs as? any Positive.Type) {
-    case (nil, nil):         return false     // 0 < 0
-    case (nil, _):           return true      // 0 < n+1
-    case (_, nil):           return false     // n+1 < 0
-    case let (lp?, rp?):     return lp.predecessor < rp.predecessor
-    }
+    if rhs == Zero.self { return false }                            // a < 0 = false
+    if lhs == Zero.self { return true }                             // 0 < S(b) = true
+    return (lhs.predecessor as! any Natural.Type) < (rhs.predecessor as! any Natural.Type)
 }
 
 public func >(lhs: any Natural.Type, rhs: any Natural.Type) -> Bool {
     rhs < lhs
 }
 
-// MARK: - Natural multiplication
+public func <=(lhs: any Natural.Type, rhs: any Natural.Type) -> Bool {
+    !(rhs < lhs)
+}
+
+public func >=(lhs: any Natural.Type, rhs: any Natural.Type) -> Bool {
+    !(lhs < rhs)
+}
+
+// MARK: - Natural multiplication (right-hand recursion)
 
 public extension Natural {
     static func *(lhs: Zero.Type, rhs: Self.Type) -> Zero.Type {
@@ -94,33 +78,28 @@ public extension Natural {
 }
 
 public func *(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type {
-    guard let pos = lhs as? any Positive.Type else { return Zero.self }  // 0 * m = 0
-    if rhs == Zero.self { return Zero.self }                              // n * 0 = 0
-    if pos.predecessor == Zero.self { return rhs }                        // 1 * m = m
-    return pos.predecessor * rhs + rhs                                    // (n+1) * m = n*m + m
+    if rhs == Zero.self { return Zero.self }                        // a * 0 = 0
+    return lhs * (rhs.predecessor as! any Natural.Type) + lhs      // a * S(b) = a*b + a
 }
 
 // MARK: - Negation
 
 public func negate(_ n: any Integer.Type) -> any Integer.Type {
     if n == Zero.self { return n }
-    if let pos = n as? any Positive.Type {
-        return negate(pos.predecessor as any Integer.Type).predecessor
+    if let nat = n as? any Natural.Type {
+        return negate(nat.predecessor as any Integer.Type).predecessor
     }
-    let neg = n as! any Negative.Type
-    return negate(neg.successor as any Integer.Type).successor
+    return negate(n.successor as any Integer.Type).successor
 }
 
-// MARK: - Integer addition
+// MARK: - Integer addition (right-hand recursion on rhs)
 
 public func +(lhs: any Integer.Type, rhs: any Integer.Type) -> any Integer.Type {
-    if lhs == Zero.self { return rhs }
-    if rhs == Zero.self { return lhs }
-    if let pos = lhs as? any Positive.Type {
-        return (pos.predecessor as any Integer.Type) + rhs.successor   // (n+1) + m = n + (m+1)
+    if rhs == Zero.self { return lhs }                              // a + 0 = a
+    if rhs is any Natural.Type {
+        return ((lhs + (rhs.predecessor as any Integer.Type)) as any Integer.Type).successor
     }
-    let neg = lhs as! any Negative.Type
-    return (neg.successor as any Integer.Type) + rhs.predecessor       // (n-1) + m = n + (m-1)
+    return ((lhs + (rhs.successor as any Integer.Type)) as any Integer.Type).predecessor
 }
 
 // MARK: - Subtraction
@@ -129,33 +108,38 @@ public func -(lhs: any Integer.Type, rhs: any Integer.Type) -> any Integer.Type 
     lhs + negate(rhs)
 }
 
-// MARK: - Integer multiplication
+// MARK: - Integer multiplication (right-hand recursion on rhs)
 
 public func *(lhs: any Integer.Type, rhs: any Integer.Type) -> any Integer.Type {
     if lhs == Zero.self || rhs == Zero.self { return Zero.self }
-    if let pos = lhs as? any Positive.Type {
-        if pos.predecessor == Zero.self { return rhs }                        // 1 * m = m
-        return (pos.predecessor as any Integer.Type) * rhs + rhs              // (n+1) * m = n*m + m
+    if rhs is any Natural.Type {
+        return (lhs * (rhs.predecessor as any Integer.Type)) + lhs  // a * S(b) = a*b + a
     }
-    let neg = lhs as! any Negative.Type
-    if neg.successor == Zero.self { return negate(rhs) }                      // (-1) * m = -m
-    return (neg.successor as any Integer.Type) * rhs - rhs                    // (n-1) * m = n*m - m
+    return (lhs * (rhs.successor as any Integer.Type)) - lhs       // a * P(b) = a*b - a
 }
 
 // MARK: - Integer comparison
 
 public func <(lhs: any Integer.Type, rhs: any Integer.Type) -> Bool {
-    if lhs is any Negative.Type && !(rhs is any Negative.Type) { return true }
-    if !(lhs is any Negative.Type) && rhs is any Negative.Type { return false }
     if let ln = lhs as? any Natural.Type, let rn = rhs as? any Natural.Type {
-        return ln < rn  // both nonnegative -- use Natural overload
+        return ln < rn
     }
-    // both negative: SubOne<a> < SubOne<b> iff a < b
+    if lhs is any Natural.Type { return false }  // nonneg >= negative
+    if rhs is any Natural.Type { return true }   // negative < nonneg
+    // both negative
     return lhs.successor < rhs.successor
 }
 
 public func >(lhs: any Integer.Type, rhs: any Integer.Type) -> Bool {
     rhs < lhs
+}
+
+public func <=(lhs: any Integer.Type, rhs: any Integer.Type) -> Bool {
+    !(rhs < lhs)
+}
+
+public func >=(lhs: any Integer.Type, rhs: any Integer.Type) -> Bool {
+    !(lhs < rhs)
 }
 
 // MARK: - Type equality assertions

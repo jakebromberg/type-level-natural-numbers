@@ -14,46 +14,36 @@ For example, `AddOne<AddOne<Zero>>` is the type-level representation of 2, and `
 
 ## Protocols
 
+The protocol hierarchy uses 3 protocols:
+
 ### `Integer`
 
 The root protocol for all integer types. Declares `Successor` and `Predecessor` associated types with `successor` and `predecessor` properties.
 
 ### `Natural`
 
-Extends `Integer` for nonnegative integers (0, 1, 2, ...). Constrains `Successor` to `Positive`. Conformed to by `Zero` and `AddOne<N>`.
-
-### `Positive`
-
-A refinement of `Natural` for numbers >= 1. Constrains `Predecessor` to `Natural`. `AddOne<N>` conforms to `Positive` for any `N: Natural`.
+Extends `Integer` for nonnegative integers (0, 1, 2, ...). Constrains `Successor` to `Natural`. Conformed to by `Zero` and `AddOne<N>`.
 
 ### `Nonpositive`
 
-Extends `Integer` for nonpositive integers (0, -1, -2, ...). Constrains `Predecessor` to `Negative`. Conformed to by `Zero` and `SubOne<N>`.
+Extends `Integer` for nonpositive integers (0, -1, -2, ...). Constrains `Predecessor` to `Nonpositive`. Conformed to by `Zero` and `SubOne<N>`.
 
-### `Negative`
-
-A refinement of `Nonpositive` for numbers <= -1. Constrains `Successor` to `Nonpositive`. `SubOne<N>` conforms to `Negative` for any `N: Nonpositive`.
-
-`Zero` sits at the intersection of `Natural` and `Nonpositive`, conforming to both.
+`Zero` sits at the intersection of `Natural` and `Nonpositive`, conforming to both. Type canonicalization is enforced by the generic parameter constraints: `AddOne<N: Natural>` prevents `AddOne<SubOne<...>>`, and `SubOne<N: Nonpositive>` prevents `SubOne<AddOne<...>>`.
 
 ## Arithmetic
 
-Free-function operators work on existential metatypes (`any Natural.Type`, `any Positive.Type`, `any Integer.Type`). They are defined recursively using `predecessor` and `successor`.
+Free-function operators work on existential metatypes (`any Natural.Type`, `any Integer.Type`). All operators use right-hand recursion (the standard Peano form), reducing the right operand toward zero.
 
 ### Addition (`+`)
 
-Natural-level overloads provide tighter return types:
+Right-hand recursive definition:
 
-| Signature | Return type |
-|---|---|
-| `(any Natural.Type, any Natural.Type)` | `any Natural.Type` |
-| `(any Natural.Type, any Positive.Type)` | `any Positive.Type` |
-| `(any Positive.Type, any Natural.Type)` | `any Positive.Type` |
-| `(any Positive.Type, any Positive.Type)` | `any Positive.Type` |
+```
+a + 0    = a         (base case)
+a + S(b) = S(a + b)  (inductive step)
+```
 
-An integer-level overload handles mixed-sign addition:
-
-| `(any Integer.Type, any Integer.Type)` | `any Integer.Type` |
+An integer-level overload handles mixed-sign addition by recursing on the rhs toward zero via `successor` (for negative rhs) or `predecessor` (for positive rhs).
 
 A `Zero`-specific static overload handles `0 + 0` without recursion.
 
@@ -67,19 +57,21 @@ func -(lhs: any Integer.Type, rhs: any Integer.Type) -> any Integer.Type
 
 ### Multiplication (`*`)
 
-Static overloads on `Natural` handle the base cases (`0 * n` and `n * 0`). A free-function recursive definition covers the general case:
+Right-hand recursive definition:
 
 ```
-(n+1) * m = n * m + m
+a * 0    = 0             (base case)
+a * S(b) = a * b + a     (inductive step)
 ```
 
-with a short-circuit for `1 * m = m`.
+Static overloads on `Natural` handle the base cases (`0 * n` and `n * 0`).
 
 An integer-level overload extends multiplication to negative numbers:
 
 ```
-(-1) * m = -m
-(n-1) * m = n * m - m
+a * 0    = 0
+a * S(b) = a * b + a     (positive rhs)
+a * P(b) = a * b - a     (negative rhs)
 ```
 
 ### Negation
@@ -90,15 +82,14 @@ func negate(_ n: any Integer.Type) -> any Integer.Type
 
 Recursively negates a number by walking toward zero and rebuilding in the opposite direction.
 
-### Comparison (`<`, `>`)
+### Comparison (`<`, `>`, `<=`, `>=`)
 
-Natural-level `<` recurses on predecessors:
+Natural-level `<` uses right-hand recursion:
 
 ```
-0 < 0       = false
-0 < (n+1)   = true
-(n+1) < 0   = false
-(n+1) < (m+1) = n < m
+a < 0    = false
+0 < S(b) = true
+S(a) < S(b) = a < b
 ```
 
 Integer-level `<` handles mixed signs:
@@ -107,7 +98,7 @@ Integer-level `<` handles mixed signs:
 - Both nonnegative: delegates to natural comparison
 - Both negative: `SubOne<a> < SubOne<b>` iff `a < b`
 
-`>` is defined as the flip of `<` at both levels.
+`>` is the flip of `<`. `<=` and `>=` are defined as `!(rhs < lhs)` and `!(lhs < rhs)` respectively, at both the natural and integer levels.
 
 ### Type-level arithmetic (Xcode target)
 
@@ -169,11 +160,14 @@ let Three = #Peano(3)
 assert(One + Two == Three)
 assert(Two * Two == #Peano(4))
 assert(Two > One)
+assert(Two <= Two)
+assert(Two >= One)
 
 // Compile-time assertions (evaluated during macro expansion)
 #PeanoAssert(1 + 2 == 3)
 #PeanoAssert(2 * 3 == 6)
 #PeanoAssert(-1 < 0)
+#PeanoAssert(0 <= 0)
 
 // Type equality via assertEqual
 assertEqual(#PeanoType(2 + 3), #Peano(5))
