@@ -1,6 +1,6 @@
 # type-level-natural-numbers
 
-Encoding the integers as Swift types using the Peano axioms and performing arithmetic and comparison over them at runtime via existential metatypes.
+Encoding the integers as Swift types using the Peano axioms and performing arithmetic and comparison over them at runtime via existential metatypes, with Swift macros for compile-time arithmetic.
 
 ## Peano encoding
 
@@ -109,32 +109,86 @@ Integer-level `<` handles mixed signs:
 
 `>` is defined as the flip of `<` at both levels.
 
-### Type-level arithmetic
+### Type-level arithmetic (Xcode target)
 
 A parallel compile-time arithmetic system lets the Swift type checker verify equalities statically. `Sum<L, R>` and `Product<L, R>` implement type-level addition and multiplication, verified via `assertEqual<T: Natural>(_: T.Type, _: T.Type)`.
 
 Due to Swift's conditional conformance limitations, `Sum` supports L up to N3, and `Product` enumerates specific (L, R) pairs for L >= 2.
 
+## Macros
+
+Three freestanding expression macros evaluate integer arithmetic at compile time. They are implemented as a Swift compiler plugin using SwiftSyntax.
+
+### `#Peano(n)` -- integer literal to Peano metatype
+
+Converts an integer literal to its Peano type representation:
+
+```swift
+#Peano(0)   // expands to: Zero.self
+#Peano(3)   // expands to: AddOne<AddOne<AddOne<Zero>>>.self
+#Peano(-2)  // expands to: SubOne<SubOne<Zero>>.self
+```
+
+### `#PeanoType(expr)` -- compile-time arithmetic
+
+Evaluates an arithmetic expression (`+`, `-`, `*`) at macro expansion time and emits the concrete Peano type:
+
+```swift
+#PeanoType(2 + 3)       // expands to: AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>.self
+#PeanoType(2 * 3 - 1)   // expands to: AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>.self
+#PeanoType(3 - 5)        // expands to: SubOne<SubOne<Zero>>.self
+```
+
+Use with `assertEqual` to verify compile-time arithmetic at the type level:
+
+```swift
+assertEqual(#PeanoType(2 + 3), #Peano(5))   // passes at runtime
+```
+
+### `#PeanoAssert(expr)` -- compile-time boolean assertion
+
+Evaluates a comparison at macro expansion time. Passing assertions expand to `()`. Failing assertions produce a compiler error:
+
+```swift
+#PeanoAssert(2 + 3 == 5)   // compiles successfully
+#PeanoAssert(2 + 3 == 7)   // compiler error: "Peano assertion failed: 2 + 3 is 5, not 7"
+#PeanoAssert(-1 < 0)        // compiles successfully
+```
+
+Supports `==`, `!=`, `<`, `>`, `<=`, `>=`.
+
 ## Examples
 
 ```swift
-let One   = AddOne<Zero>.self
-let Two   = One.successor
-let Three = Two.successor
+// Convenience bindings via macros
+let One   = #Peano(1)
+let Two   = #Peano(2)
+let Three = #Peano(3)
 
+// Runtime assertions (existential metatype arithmetic)
 assert(One + Two == Three)
-assert(Two * Two == Four)
+assert(Two * Two == #Peano(4))
 assert(Two > One)
-assert(!(Zip < Zip))
 
-let MinusOne = SubOne<Zero>.self
-assert(One + MinusOne == Zip)
-assert(Three - Two == One)
-assert(Two - Three == MinusOne)
-assert(MinusOne * MinusOne == One)
-assert(MinusOne < Zip)
+// Compile-time assertions (evaluated during macro expansion)
+#PeanoAssert(1 + 2 == 3)
+#PeanoAssert(2 * 3 == 6)
+#PeanoAssert(-1 < 0)
+
+// Type equality via assertEqual
+assertEqual(#PeanoType(2 + 3), #Peano(5))
 ```
 
 ## Building
 
-Open `type-level-natural-numbers.xcodeproj` in Xcode and run the target. The program exercises every operation via `assert` statements -- a successful run means all checks pass.
+### SPM
+
+```sh
+swift build                  # compile (compile-time assertions verified here)
+swift run PeanoNumbersClient # run runtime assertions
+swift test                   # run macro expansion tests
+```
+
+### Xcode
+
+Open `type-level-natural-numbers.xcodeproj` in Xcode and run the target. The Xcode project is self-contained and does not use the SPM macros.
