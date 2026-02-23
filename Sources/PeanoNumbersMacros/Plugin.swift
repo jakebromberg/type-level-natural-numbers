@@ -5,5 +5,6 @@ import SwiftSyntaxMacros
 struct PeanoNumbersPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         PeanoMacro.self,
+        PeanoTypeMacro.self,
     ]
 }

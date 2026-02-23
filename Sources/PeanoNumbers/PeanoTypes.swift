@@ -158,9 +158,16 @@ public func >(lhs: any Integer.Type, rhs: any Integer.Type) -> Bool {
     rhs < lhs
 }
 
-// MARK: - Compile-time type equality assertion
+// MARK: - Type equality assertions
 
 /// Compile-time type equality assertion. Compiles only when both arguments
 /// have the same concrete type. The body is intentionally empty -- the
 /// assertion is the successful compilation itself.
 public func assertEqual<T: Integer>(_: T.Type, _: T.Type) {}
+
+/// Runtime type equality assertion for use with existential metatypes
+/// (e.g. values returned by macros). For compile-time assertions, use
+/// `#PeanoAssert` instead.
+public func assertEqual(_ a: any Integer.Type, _ b: any Integer.Type) {
+    assert(a == b, "assertEqual failed: \(a) != \(b)")
+}
