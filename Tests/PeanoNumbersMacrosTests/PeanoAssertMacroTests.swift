@@ -117,5 +117,74 @@ final class PeanoAssertMacroTests: XCTestCase {
         )
     }
 
+    // MARK: - Arithmetic extension assertions
+
+    func testExponentiationPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(2 ** 3 == 8)",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testMonusPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(5 .- 3 == 2)",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testDivisionPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(6 / 2 == 3)",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testModuloPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(6 % 4 == 2)",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testFactorialPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(factorial(3) == 6)",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testFibonacciPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(fibonacci(6) == 8)",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testGcdPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(gcd(6, 4) == 2)",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testExponentiationFails() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(2 ** 3 == 9)",
+            expandedSource: "#PeanoAssert(2 ** 3 == 9)",
+            diagnostics: [
+                DiagnosticSpec(message: "Peano assertion failed: 2 ** 3 is 8, not 9", line: 1, column: 1),
+            ],
+            macros: peanoAssertMacros
+        )
+    }
+
     #endif
 }
