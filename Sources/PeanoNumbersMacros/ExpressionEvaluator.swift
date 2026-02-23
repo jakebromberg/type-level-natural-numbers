@@ -16,9 +16,34 @@ enum EvaluationError: Error {
     case unsupportedComparison(String)
 }
 
+// MARK: - Int helpers for macro evaluation
+
+private func intPow(_ base: Int, _ exp: Int) -> Int {
+    if exp == 0 { return 1 }
+    var result = 1
+    for _ in 0..<exp { result *= base }
+    return result
+}
+
+private func fibonacciInt(_ n: Int) -> Int {
+    var a = 0, b = 1
+    for _ in 0..<n { (a, b) = (b, a + b) }
+    return a
+}
+
+private func gcdInt(_ a: Int, _ b: Int) -> Int {
+    if b == 0 { return a }
+    return gcdInt(b, a % b)
+}
+
+private func factorialInt(_ n: Int) -> Int {
+    (1...max(1, n)).reduce(1, *)
+}
+
 /// Evaluates a SwiftSyntax arithmetic expression to an Int.
 ///
-/// Supports integer literals, prefix minus, binary +/-/*, negate(), and parentheses.
+/// Supports integer literals, prefix minus, binary operators (+, -, *, **, .-, /, %),
+/// function calls (negate, factorial, fibonacci, gcd), and parentheses.
 /// The Swift compiler folds operator precedence before macro expansion, so
 /// `2 + 3 * 4` arrives already structured as `2 + (3 * 4)`.
 func evaluateExpression(_ expr: ExprSyntax) throws -> Int {
@@ -36,30 +61,35 @@ func evaluateExpression(_ expr: ExprSyntax) throws -> Int {
         return -(try evaluateExpression(prefix.expression))
     }
 
-    // Infix operator: 2 + 3, 2 * 3, 2 - 3
+    // Infix operator: 2 + 3, 2 * 3, 2 - 3, 2 ** 3, 5 .- 3, 6 / 2, 6 % 4
     if let infix = expr.as(InfixOperatorExprSyntax.self),
        let op = infix.operator.as(BinaryOperatorExprSyntax.self) {
         let lhs = try evaluateExpression(infix.leftOperand)
         let rhs = try evaluateExpression(infix.rightOperand)
         switch op.operator.text {
-        case "+": return lhs + rhs
-        case "-": return lhs - rhs
-        case "*": return lhs * rhs
+        case "+":  return lhs + rhs
+        case "-":  return lhs - rhs
+        case "*":  return lhs * rhs
+        case "**": return intPow(lhs, rhs)
+        case ".-": return max(lhs - rhs, 0)
+        case "/":  return lhs / rhs
+        case "%":  return lhs % rhs
         default: throw EvaluationError.unsupportedOperator(op.operator.text)
         }
     }
 
-    // Function call: negate(x)
+    // Function call: negate(x), factorial(x), fibonacci(x), gcd(a, b)
     if let call = expr.as(FunctionCallExprSyntax.self),
        let callee = call.calledExpression.as(DeclReferenceExprSyntax.self) {
         let name = callee.baseName.text
-        guard name == "negate" else {
-            throw EvaluationError.unsupportedFunction(name)
+        let args = try call.arguments.map { try evaluateExpression($0.expression) }
+        switch (name, args.count) {
+        case ("negate", 1):    return -args[0]
+        case ("factorial", 1): return factorialInt(args[0])
+        case ("fibonacci", 1): return fibonacciInt(args[0])
+        case ("gcd", 2):       return gcdInt(args[0], args[1])
+        default: throw EvaluationError.unsupportedFunction(name)
         }
-        guard let firstArg = call.arguments.first else {
-            throw EvaluationError.unsupportedExpression(expr)
-        }
-        return -(try evaluateExpression(firstArg.expression))
     }
 
     // Parenthesized expression: (2 + 3)
