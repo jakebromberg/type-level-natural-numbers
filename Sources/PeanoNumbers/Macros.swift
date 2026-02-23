@@ -3,3 +3,6 @@ public macro Peano(_ value: Int) -> any Integer.Type = #externalMacro(module: "P
 
 @freestanding(expression)
 public macro PeanoType(_ expr: Any) -> any Integer.Type = #externalMacro(module: "PeanoNumbersMacros", type: "PeanoTypeMacro")
+
+@freestanding(expression)
+public macro PeanoAssert(_ expr: Any) = #externalMacro(module: "PeanoNumbersMacros", type: "PeanoAssertMacro")
