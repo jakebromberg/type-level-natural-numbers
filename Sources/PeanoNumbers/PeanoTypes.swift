@@ -142,6 +142,114 @@ public func >=(lhs: any Integer.Type, rhs: any Integer.Type) -> Bool {
     !(lhs < rhs)
 }
 
+// MARK: - Exponentiation (right-hand recursion on exponent)
+
+infix operator ** : MultiplicationPrecedence
+
+/// Int exponentiation (enables `**` in macro expressions like `#PeanoType(2 ** 3)`).
+public func **(base: Int, exp: Int) -> Int {
+    if exp == 0 { return 1 }
+    var result = 1
+    for _ in 0..<exp { result *= base }
+    return result
+}
+
+/// Natural exponentiation: `a ** 0 = 1`, `a ** S(b) = a ** b * a`.
+public func **(base: any Natural.Type, exp: any Natural.Type) -> any Natural.Type {
+    if exp == Zero.self { return AddOne<Zero>.self }                     // a ** 0 = 1
+    return (base ** (exp.predecessor as! any Natural.Type)) * base      // a ** S(b) = a**b * a
+}
+
+/// Integer exponentiation with natural exponent.
+/// Negative base with natural exponent (e.g. `(-2) ** 3 = -8`).
+public func **(base: any Integer.Type, exp: any Natural.Type) -> any Integer.Type {
+    if exp == Zero.self { return AddOne<Zero>.self }                     // a ** 0 = 1
+    return (base ** (exp.predecessor as! any Natural.Type)) * base      // a ** S(b) = a**b * a
+}
+
+// MARK: - Truncated subtraction / monus
+
+infix operator .- : AdditionPrecedence
+
+/// Int monus (enables `.-` in macro expressions like `#PeanoType(5 .- 3)`).
+public func .-(lhs: Int, rhs: Int) -> Int {
+    max(lhs - rhs, 0)
+}
+
+/// Monus (truncated subtraction): `a .- 0 = a`, `0 .- b = 0`, `S(a) .- S(b) = a .- b`.
+/// Returns 0 when `rhs > lhs`.
+public func .-(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type {
+    if rhs == Zero.self { return lhs }                                  // a .- 0 = a
+    if lhs == Zero.self { return Zero.self }                            // 0 .- b = 0
+    return (lhs.predecessor as! any Natural.Type) .- (rhs.predecessor as! any Natural.Type)
+}
+
+// MARK: - Division and modulo
+
+/// Division and modulo via repeated subtraction.
+/// Returns `(quotient, remainder)` where `a = q * b + r` and `0 <= r < b`.
+/// Precondition: `b != 0`.
+public func divmod(_ a: any Natural.Type, _ b: any Natural.Type) -> (any Natural.Type, any Natural.Type) {
+    if a < b { return (Zero.self, a) }
+    let (q, r) = divmod(a .- b, b)
+    return (q + AddOne<Zero>.self, r)
+}
+
+/// Natural division (truncated). Precondition: `rhs != 0`.
+public func /(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type {
+    divmod(lhs, rhs).0
+}
+
+/// Natural modulo. Precondition: `rhs != 0`.
+public func %(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type {
+    divmod(lhs, rhs).1
+}
+
+// MARK: - Factorial
+
+/// Int factorial (enables `factorial()` in macro expressions like `#PeanoType(factorial(4))`).
+public func factorial(_ n: Int) -> Int {
+    (1...max(1, n)).reduce(1, *)
+}
+
+/// Factorial: `fact(0) = 1`, `fact(S(n)) = S(n) * fact(n)`.
+public func factorial(_ n: any Natural.Type) -> any Natural.Type {
+    if n == Zero.self { return AddOne<Zero>.self }
+    return n * factorial(n.predecessor as! any Natural.Type)
+}
+
+// MARK: - Fibonacci
+
+/// Int fibonacci (enables `fibonacci()` in macro expressions like `#PeanoType(fibonacci(6))`).
+public func fibonacci(_ n: Int) -> Int {
+    var a = 0, b = 1
+    for _ in 0..<n { (a, b) = (b, a + b) }
+    return a
+}
+
+/// Fibonacci: `fib(0) = 0`, `fib(1) = 1`, `fib(n) = fib(n-1) + fib(n-2)`.
+/// Uses an iterative helper with accumulators to avoid exponential recursion.
+public func fibonacci(_ n: any Natural.Type) -> any Natural.Type {
+    func helper(_ n: any Natural.Type, _ a: any Natural.Type, _ b: any Natural.Type) -> any Natural.Type {
+        if n == Zero.self { return a }
+        return helper(n.predecessor as! any Natural.Type, b, a + b)
+    }
+    return helper(n, Zero.self, AddOne<Zero>.self)
+}
+
+// MARK: - GCD
+
+/// Int GCD (enables `gcd()` in macro expressions like `#PeanoType(gcd(6, 4))`).
+public func gcd(_ a: Int, _ b: Int) -> Int {
+    b == 0 ? a : gcd(b, a % b)
+}
+
+/// Greatest common divisor via Euclidean algorithm: `gcd(a, 0) = a`, `gcd(a, b) = gcd(b, a % b)`.
+public func gcd(_ a: any Natural.Type, _ b: any Natural.Type) -> any Natural.Type {
+    if b == Zero.self { return a }
+    return gcd(b, a % b)
+}
+
 // MARK: - Type equality assertions
 
 /// Compile-time type equality assertion. Compiles only when both arguments

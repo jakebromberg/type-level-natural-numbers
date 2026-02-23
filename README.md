@@ -100,6 +100,63 @@ Integer-level `<` handles mixed signs:
 
 `>` is the flip of `<`. `<=` and `>=` are defined as `!(rhs < lhs)` and `!(lhs < rhs)` respectively, at both the natural and integer levels.
 
+### Exponentiation (`**`)
+
+Right-hand recursive on the exponent:
+
+```
+a ** 0    = 1
+a ** S(b) = a ** b * a
+```
+
+Natural-only for the base and exponent. An integer-level overload handles negative bases with natural exponents (e.g. `(-2) ** 3 = -8`).
+
+### Truncated subtraction / monus (`.-`)
+
+```
+a .- 0    = a
+0 .- b    = 0
+S(a) .- S(b) = a .- b
+```
+
+Returns 0 when `rhs > lhs`. The standard Peano "monus" operation -- subtraction that stays in the naturals.
+
+### Division and modulo (`/`, `%`, `divmod`)
+
+Natural division and modulo via repeated subtraction:
+
+```swift
+func divmod(_ a: any Natural.Type, _ b: any Natural.Type) -> (any Natural.Type, any Natural.Type)
+func /(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type
+func %(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type
+```
+
+`divmod` returns `(quotient, remainder)` where `a = q * b + r` and `0 <= r < b`. `/` and `%` delegate to `divmod`.
+
+### Factorial
+
+```
+fact(0) = 1
+fact(S(n)) = S(n) * fact(n)
+```
+
+### Fibonacci
+
+```
+fib(0) = 0, fib(1) = 1, fib(n) = fib(n-1) + fib(n-2)
+```
+
+Uses an iterative helper with accumulator pair to avoid exponential recursion.
+
+### GCD
+
+Euclidean algorithm:
+
+```
+gcd(a, 0) = a
+gcd(a, b) = gcd(b, a % b)
+```
+
 ## Macros
 
 Three freestanding expression macros evaluate integer arithmetic at compile time. They are implemented as a Swift compiler plugin using SwiftSyntax.
@@ -116,7 +173,7 @@ Converts an integer literal to its Peano type representation:
 
 ### `#PeanoType(expr)` -- compile-time arithmetic
 
-Evaluates an arithmetic expression (`+`, `-`, `*`) at macro expansion time and emits the concrete Peano type:
+Evaluates an arithmetic expression at macro expansion time and emits the concrete Peano type. Supports `+`, `-`, `*`, `**`, `.-`, `/`, `%`, `negate()`, `factorial()`, `fibonacci()`, `gcd()`:
 
 ```swift
 #PeanoType(2 + 3)       // expands to: AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>.self
@@ -145,26 +202,22 @@ Supports `==`, `!=`, `<`, `>`, `<=`, `>=`.
 ## Examples
 
 ```swift
-// Convenience bindings via macros
-let One   = #Peano(1)
-let Two   = #Peano(2)
-let Three = #Peano(3)
+// Convenience bindings
+let Two: any Natural.Type = AddOne<AddOne<Zero>>.self
+let Three: any Natural.Type = Two.successor
 
-// Runtime assertions (existential metatype arithmetic)
-assert(One + Two == Three)
-assert(Two * Two == #Peano(4))
-assert(Two > One)
-assert(Two <= Two)
-assert(Two >= One)
+// Runtime arithmetic
+assert(Two + Three == #Peano(5))
+assert(Two ** Three == #Peano(8))
+assert(factorial(Three) == #Peano(6))
+assert(fibonacci(Three) == Two)
+assert(gcd(#Peano(6) as! any Natural.Type, #Peano(4) as! any Natural.Type) == Two)
 
-// Compile-time assertions (evaluated during macro expansion)
-#PeanoAssert(1 + 2 == 3)
-#PeanoAssert(2 * 3 == 6)
-#PeanoAssert(-1 < 0)
-#PeanoAssert(0 <= 0)
-
-// Type equality via assertEqual
-assertEqual(#PeanoType(2 + 3), #Peano(5))
+// Compile-time assertions
+#PeanoAssert(2 ** 3 == 8)
+#PeanoAssert(factorial(4) == 24)
+#PeanoAssert(gcd(6, 4) == 2)
+assertEqual(#PeanoType(fibonacci(6)), #Peano(8))
 ```
 
 ## Building
