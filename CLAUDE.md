@@ -14,7 +14,7 @@ Sources/
   PeanoNumbers/                          -- library: types, operators, macro declarations
     PeanoTypes.swift                     -- protocols, Zero, AddOne, SubOne, operators, assertEqual
     ChurchNumerals.swift                 -- Church numeral encoding (ChurchNumeral, ChurchZero, ChurchSucc, ChurchAdd, ChurchMul)
-    CayleyDickson.swift                  -- Cayley-Dickson construction (Algebra, AlgebraValue, CayleyDickson, gaussian, quaternion)
+    CayleyDickson.swift                  -- Cayley-Dickson construction (Algebra, AlgebraValue, CayleyDickson, gaussian, quaternion, sign-parameterized multiply/norm)
     Macros.swift                         -- @freestanding macro declarations
   PeanoNumbersMacros/                    -- .macro target: compiler plugin
     Plugin.swift                         -- CompilerPlugin entry point
@@ -22,7 +22,8 @@ Sources/
     PeanoTypeMacro.swift                 -- #PeanoType(expr) implementation
     PeanoAssertMacro.swift               -- #PeanoAssert(expr) implementation
     ChurchMacro.swift                    -- #Church(n) implementation
-    ExpressionEvaluator.swift            -- shared arithmetic evaluator
+    GaussianMacro.swift                  -- #Gaussian(re, im) implementation
+    ExpressionEvaluator.swift            -- shared arithmetic/algebra evaluator (EvalValue, evaluateAlgebraExpression)
     Diagnostics.swift                    -- PeanoDiagnostic enum
   PeanoNumbersClient/                    -- SPM executable: exercises everything
     main.swift                           -- convenience bindings, runtime + compile-time assertions
@@ -32,6 +33,7 @@ Tests/
     PeanoTypeMacroTests.swift
     PeanoAssertMacroTests.swift
     ChurchMacroTests.swift
+    GaussianMacroTests.swift
 ```
 
 ## Building and testing
@@ -78,3 +80,4 @@ The Xcode target is self-contained -- it does not depend on the SPM package. It 
 - `worktree-arithmetic-extensions` -- extends simplify-protocols: adds exponentiation, monus, division/modulo, factorial, fibonacci, GCD; extends macro evaluator.
 - `worktree-advanced-extensions` -- extends arithmetic-extensions: adds hyperoperation, Ackermann function, Church numeral encoding with `#Church` macro.
 - `worktree-cayley-dickson` -- extends advanced-extensions: adds Cayley-Dickson construction (Algebra protocol, AlgebraValue, CayleyDickson type, Gaussian integers, quaternions).
+- `worktree-cayley-dickson-macros` -- extends cayley-dickson: adds `#Gaussian` macro, sign-parameterized multiplication/norm (split-complex, dual numbers), and Cayley-Dickson evaluator for `#PeanoAssert`.

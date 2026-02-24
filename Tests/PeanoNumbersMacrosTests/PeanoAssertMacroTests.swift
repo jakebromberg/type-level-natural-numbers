@@ -213,5 +213,77 @@ final class PeanoAssertMacroTests: XCTestCase {
         )
     }
 
+    // MARK: - Cayley-Dickson assertions
+
+    func testGaussianAdditionPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(gaussian(1, 2) + gaussian(3, -1) == gaussian(4, 1))",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testGaussianMultiplicationPasses() throws {
+        // (1+2i)(3-i) = 3 - i + 6i - 2i² = 5 + 5i
+        assertMacroExpansion(
+            "#PeanoAssert(gaussian(1, 2) * gaussian(3, -1) == gaussian(5, 5))",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testConjugatePasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(conjugate(gaussian(1, 2)) == gaussian(1, -2))",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testNormPasses() throws {
+        // |1+2i|² = 1 + 4 = 5
+        assertMacroExpansion(
+            "#PeanoAssert(norm(gaussian(1, 2)) == 5)",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testGaussianEqualityFails() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(gaussian(1, 2) + gaussian(3, 0) == gaussian(5, 2))",
+            expandedSource: "#PeanoAssert(gaussian(1, 2) + gaussian(3, 0) == gaussian(5, 2))",
+            diagnostics: [
+                DiagnosticSpec(message: "Peano assertion failed: gaussian(1, 2) + gaussian(3, 0) is (4, 2), not (5, 2)", line: 1, column: 1),
+            ],
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testGaussianInequalityPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(gaussian(1, 2) != gaussian(1, 3))",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testGaussianSubtractionPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(gaussian(3, 1) - gaussian(1, 2) == gaussian(2, -1))",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testImaginaryUnitSquaredPasses() throws {
+        // i² = -1: gaussian(0,1) * gaussian(0,1) = gaussian(-1, 0)
+        assertMacroExpansion(
+            "#PeanoAssert(gaussian(0, 1) * gaussian(0, 1) == gaussian(-1, 0))",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
     #endif
 }

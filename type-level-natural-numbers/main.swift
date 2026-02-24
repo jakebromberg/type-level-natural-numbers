@@ -714,6 +714,84 @@ let q1 = quaternion(One, Two, Three, Four)
 let Thirty = AlgebraValue.scalar(Six * Five)
 assert(norm(q1) == Thirty)
 
+// MARK: - Sign-parameterized Cayley-Dickson
+
+/// Sign parameter for generalized Cayley-Dickson multiplication.
+enum CayleyDicksonSign {
+    case standard  // ε = -1
+    case split     // ε = +1
+    case dual      // ε = 0
+}
+
+/// Multiplication with explicit sign parameter.
+func multiply(_ lhs: AlgebraValue, _ rhs: AlgebraValue,
+              sign: CayleyDicksonSign = .standard) -> AlgebraValue {
+    let d = max(depth(lhs), depth(rhs))
+    return mulSameDepth(embed(lhs, toDepth: d), embed(rhs, toDepth: d), sign: sign)
+}
+
+private func mulSameDepth(_ lhs: AlgebraValue, _ rhs: AlgebraValue,
+                          sign: CayleyDicksonSign) -> AlgebraValue {
+    switch (lhs, rhs) {
+    case (.scalar(let a), .scalar(let b)):
+        return .scalar((a as any Integer.Type) * (b as any Integer.Type))
+    case (.pair(let a, let b), .pair(let c, let d)):
+        let ac = mulSameDepth(a, c, sign: sign)
+        let conjD_b = mulSameDepth(conjugate(d), b, sign: sign)
+        let da = mulSameDepth(d, a, sign: sign)
+        let b_conjC = mulSameDepth(b, conjugate(c), sign: sign)
+
+        let realPart: AlgebraValue
+        switch sign {
+        case .standard: realPart = addSameDepth(ac, negate(conjD_b))
+        case .split:    realPart = addSameDepth(ac, conjD_b)
+        case .dual:     realPart = ac
+        }
+
+        return .pair(realPart, addSameDepth(da, b_conjC))
+    default:
+        fatalError("AlgebraValue depth mismatch in mulSameDepth")
+    }
+}
+
+/// Norm with explicit sign parameter.
+func norm(_ a: AlgebraValue, sign: CayleyDicksonSign) -> AlgebraValue {
+    switch a {
+    case .scalar(let n):
+        return .scalar((n as any Integer.Type) * (n as any Integer.Type))
+    case .pair(let re, let im):
+        let nRe = norm(re, sign: sign)
+        let nIm = norm(im, sign: sign)
+        switch sign {
+        case .standard: return addSameDepth(nRe, nIm)
+        case .split:    return addSameDepth(nRe, negate(nIm))
+        case .dual:     return nRe
+        }
+    }
+}
+
+// -- Split-complex: j² = +1 --
+
+let splitJ = gaussian(Zip, One)
+assert(multiply(splitJ, splitJ, sign: .split) == gaussian(One, Zip))
+
+// -- Standard: i² = -1 (unchanged) --
+
+assert(multiply(splitJ, splitJ, sign: .standard) == gaussian(MinusOne, Zip))
+
+// -- Dual: ε² = 0 --
+
+assert(multiply(splitJ, splitJ, sign: .dual) == gaussian(Zip, Zip))
+
+// -- Dual norm: N_dual(a + εb) = a² --
+
+let onePlusJ = gaussian(One, One)
+assert(norm(onePlusJ, sign: .dual) == AlgebraValue.scalar(One))
+
+// -- Split norm: N_split(a + jb) = a² - b² --
+
+assert(norm(onePlusJ, sign: .split) == AlgebraValue.scalar(Zip))
+
 // MARK: - Type-level arithmetic
 
 /// A type-level computation that evaluates to a `Natural` type.
