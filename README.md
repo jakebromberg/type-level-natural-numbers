@@ -236,17 +236,25 @@ enum CayleyDickson<Re: Algebra, Im: Algebra>: Algebra { ... }
 
 #### Arithmetic
 
-Cayley-Dickson multiplication follows the recursive formula:
+Cayley-Dickson multiplication follows the generalized recursive formula:
 
 ```
-(a, b) * (c, d) = (a*c - conj(d)*b, d*a + b*conj(c))
+(a, b) * (c, d) = (a*c + ε*conj(d)*b, d*a + b*conj(c))
 ```
 
-where conjugation is: `conj(scalar) = scalar`, `conj(a, b) = (conj(a), -b)`.
+where ε is the sign parameter and conjugation is: `conj(scalar) = scalar`, `conj(a, b) = (conj(a), -b)`.
+
+The `*` operator uses the standard sign (ε = -1), which gives complex numbers, quaternions, and octonions. For other algebras, use `multiply(_:_:sign:)`:
+
+| Sign | ε | Algebra | Imaginary unit |
+|------|---|---------|---------------|
+| `.standard` | -1 | complex, quaternions, octonions | i² = -1 |
+| `.split` | +1 | split-complex, split-quaternions | j² = +1 |
+| `.dual` | 0 | dual numbers | ε² = 0 |
 
 Addition is component-wise: `(a, b) + (c, d) = (a + c, b + d)`.
 
-The norm (squared modulus) sums the squares of all scalar components: `N(a, b) = N(a) + N(b)`.
+The norm accepts a sign parameter: `norm(_:sign:)`. For the standard sign, `N(a, b) = N(a) + N(b)` (sum of squares). For split, `N(a, b) = N(a) - N(b)`. For dual, `N(a, b) = N(a)`.
 
 Operands at different depths are auto-embedded to matching depth, so a scalar can be added to or multiplied by a Gaussian integer directly.
 
@@ -259,7 +267,7 @@ quaternion(a, b, c, d) // quaternion: a + bi + cj + dk (stored as ((a,b), (c,d))
 
 ## Macros
 
-Four freestanding expression macros evaluate integer arithmetic at compile time. They are implemented as a Swift compiler plugin using SwiftSyntax.
+Five freestanding expression macros evaluate arithmetic at compile time. They are implemented as a Swift compiler plugin using SwiftSyntax.
 
 ### `#Peano(n)` -- integer literal to Peano metatype
 
@@ -297,7 +305,25 @@ Evaluates a comparison at macro expansion time. Passing assertions expand to `()
 #PeanoAssert(-1 < 0)        // compiles successfully
 ```
 
-Supports `==`, `!=`, `<`, `>`, `<=`, `>=`.
+Supports `==`, `!=`, `<`, `>`, `<=`, `>=`. Also supports Cayley-Dickson expressions:
+
+```swift
+#PeanoAssert(gaussian(1, 2) + gaussian(3, -1) == gaussian(4, 1))   // compiles
+#PeanoAssert(gaussian(1, 2) * gaussian(3, -1) == gaussian(5, 5))   // compiles
+#PeanoAssert(conjugate(gaussian(1, 2)) == gaussian(1, -2))          // compiles
+#PeanoAssert(norm(gaussian(1, 2)) == 5)                             // compiles
+```
+
+Note: Cayley-Dickson `#PeanoAssert` assertions can only be verified via `assertMacroExpansion` in the test target. Using them directly in source causes type-checking errors because the compiler validates macro argument syntax before expansion, and `gaussian(1, 2)` with `Int` literals doesn't match `gaussian(_: any Integer.Type, _: any Integer.Type)`.
+
+### `#Gaussian(re, im)` -- compile-time Gaussian integer construction
+
+Evaluates two integer expressions at compile time and expands to a `gaussian(...)` call with Peano types:
+
+```swift
+#Gaussian(1, 2)           // expands to: gaussian(AddOne<Zero>.self, AddOne<AddOne<Zero>>.self)
+#Gaussian(2 + 1, 3 * -1)  // expands to: gaussian(AddOne<AddOne<AddOne<Zero>>>.self, SubOne<SubOne<SubOne<Zero>>>.self)
+```
 
 ### `#Church(n)` -- integer literal to Church numeral type
 
@@ -351,6 +377,15 @@ assert(norm(z1) == AlgebraValue.scalar(Five))  // |1+2i|² = 5
 let qi = quaternion(Zip, One, Zip, Zip)  // i
 let qj = quaternion(Zip, Zip, One, Zip)  // j
 assert(qi * qj != qj * qi)  // quaternion multiplication is non-commutative
+
+// Sign-parameterized multiplication
+let j = gaussian(Zip, One)
+assert(multiply(j, j, sign: .split) == gaussian(One, Zip))     // j² = +1 (split-complex)
+assert(multiply(j, j, sign: .dual) == gaussian(Zip, Zip))      // ε² = 0  (dual numbers)
+
+// #Gaussian macro
+assert(#Gaussian(1, 2) == gaussian(One, Two))
+assert(#Gaussian(2 + 1, 3 * -1) == gaussian(Three, MinusThree))
 ```
 
 ## Building

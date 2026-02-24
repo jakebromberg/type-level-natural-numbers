@@ -13,9 +13,9 @@ public struct PeanoAssertMacro: ExpressionMacro {
             ])
         }
 
-        let comparison: (lhs: Int, rhs: Int, op: String, result: Bool)
+        let comparison: (lhs: EvalValue, rhs: EvalValue, op: String, result: Bool)
         do {
-            comparison = try evaluateComparison(argument)
+            comparison = try evaluateAlgebraComparison(argument)
         } catch {
             throw DiagnosticsError(diagnostics: [
                 Diagnostic(node: Syntax(argument), message: PeanoDiagnostic.expectedComparison)
@@ -27,14 +27,16 @@ public struct PeanoAssertMacro: ExpressionMacro {
         }
 
         // Build a helpful failure message
+        let lhsStr = formatEvalValue(comparison.lhs)
+        let rhsStr = formatEvalValue(comparison.rhs)
         let message: String
         if comparison.op == "==" {
             let lhsExpr = argument.as(InfixOperatorExprSyntax.self)!.leftOperand
-            message = "Peano assertion failed: \(lhsExpr.description.trimmingCharacters(in: .whitespaces)) is \(comparison.lhs), not \(comparison.rhs)"
+            message = "Peano assertion failed: \(lhsExpr.description.trimmingCharacters(in: .whitespaces)) is \(lhsStr), not \(rhsStr)"
         } else if comparison.op == "!=" {
-            message = "Peano assertion failed: \(comparison.lhs) != \(comparison.rhs) is false"
+            message = "Peano assertion failed: \(lhsStr) != \(rhsStr) is false"
         } else {
-            message = "Peano assertion failed: \(comparison.lhs) \(comparison.op) \(comparison.rhs) is false"
+            message = "Peano assertion failed: \(lhsStr) \(comparison.op) \(rhsStr) is false"
         }
 
         throw DiagnosticsError(diagnostics: [
