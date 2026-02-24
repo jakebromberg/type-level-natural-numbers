@@ -214,30 +214,25 @@ func evaluateAlgebraExpression(_ expr: ExprSyntax) throws -> EvalValue {
        let op = infix.operator.as(BinaryOperatorExprSyntax.self) {
         let lhs = try evaluateAlgebraExpression(infix.leftOperand)
         let rhs = try evaluateAlgebraExpression(infix.rightOperand)
+
+        func intBinaryOp(
+            _ lhs: EvalValue, _ rhs: EvalValue,
+            op name: String, _ f: (Int, Int) -> Int
+        ) throws -> EvalValue {
+            guard case .integer(let l) = lhs, case .integer(let r) = rhs else {
+                throw EvaluationError.unsupportedOperator(name)
+            }
+            return .integer(f(l, r))
+        }
+
         switch op.operator.text {
         case "+":  return addEval(lhs, rhs)
         case "-":  return addEval(lhs, negateEval(rhs))
         case "*":  return mulEval(lhs, rhs)
-        case "**":
-            guard case .integer(let base) = lhs, case .integer(let exp) = rhs else {
-                throw EvaluationError.unsupportedOperator(op.operator.text)
-            }
-            return .integer(intPow(base, exp))
-        case ".-":
-            guard case .integer(let l) = lhs, case .integer(let r) = rhs else {
-                throw EvaluationError.unsupportedOperator(op.operator.text)
-            }
-            return .integer(max(l - r, 0))
-        case "/":
-            guard case .integer(let l) = lhs, case .integer(let r) = rhs else {
-                throw EvaluationError.unsupportedOperator(op.operator.text)
-            }
-            return .integer(l / r)
-        case "%":
-            guard case .integer(let l) = lhs, case .integer(let r) = rhs else {
-                throw EvaluationError.unsupportedOperator(op.operator.text)
-            }
-            return .integer(l % r)
+        case "**": return try intBinaryOp(lhs, rhs, op: "**", intPow)
+        case ".-": return try intBinaryOp(lhs, rhs, op: ".-") { max($0 - $1, 0) }
+        case "/":  return try intBinaryOp(lhs, rhs, op: "/",  /)
+        case "%":  return try intBinaryOp(lhs, rhs, op: "%",  %)
         default: throw EvaluationError.unsupportedOperator(op.operator.text)
         }
     }
