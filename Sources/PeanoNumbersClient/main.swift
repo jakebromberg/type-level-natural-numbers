@@ -361,3 +361,47 @@ assert(norm(q1) == Thirty)
 // -- Scalar embeds into quaternion --
 
 assert(AlgebraValue.scalar(One) + q1 == quaternion(Two, Two, Three, Four))
+
+// MARK: - Sign-parameterized Cayley-Dickson
+
+// -- Split-complex: j² = +1 (not -1) --
+
+let splitJ = gaussian(Zip, One)
+assert(multiply(splitJ, splitJ, sign: .split) == gaussian(One, Zip))
+
+// -- Standard: i² = -1 (unchanged) --
+
+assert(multiply(splitJ, splitJ, sign: .standard) == gaussian(MinusOne, Zip))
+
+// -- Dual: ε² = 0 --
+
+assert(multiply(splitJ, splitJ, sign: .dual) == gaussian(Zip, Zip))
+
+// -- Split multiplication distributes: (1+j)(1+j) = 1 + j + j + j² = 2 + 2j --
+
+let onePlusJ = gaussian(One, One)
+assert(multiply(onePlusJ, onePlusJ, sign: .split) == gaussian(Two, Two))
+
+// -- Dual norm: N_dual(a + εb) = a² (imaginary contributes nothing) --
+
+assert(norm(onePlusJ, sign: .dual) == AlgebraValue.scalar(One))
+
+// -- Split norm: N_split(a + jb) = a² - b² --
+
+assert(norm(onePlusJ, sign: .split) == AlgebraValue.scalar(Zip))
+
+// -- Standard norm unchanged --
+
+assert(norm(onePlusJ, sign: .standard) == AlgebraValue.scalar(Two))
+
+// MARK: - #Gaussian macro
+
+assert(#Gaussian(1, 2) == gaussian(One, Two))
+assert(#Gaussian(0, 0) == gaussian(Zip, Zip))
+assert(#Gaussian(3, -1) == gaussian(Three, MinusOne))
+assert(#Gaussian(2 + 1, 3 * -1) == gaussian(Three, MinusThree))
+
+// Cayley-Dickson assertions via #PeanoAssert are verified in the test target
+// (the compiler type-checks macro arguments for operator precedence folding,
+// so `gaussian(1, 2)` with Int literals doesn't pass the type-checker --
+// use assertMacroExpansion in tests instead).
