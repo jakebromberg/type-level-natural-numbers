@@ -205,6 +205,58 @@ Church arithmetic is defined at the type level:
 
 Convert to `Int` via `churchToInt(_:)`.
 
+### Cayley-Dickson construction
+
+The Cayley-Dickson construction builds higher-dimensional algebras from pairs of elements in an existing algebra. Starting from the integers, each application doubles the dimension:
+
+| Level | Algebra | Dimensions | Properties lost |
+|-------|---------|------------|-----------------|
+| 0 | Integers | 1 | -- |
+| 1 | Gaussian integers (complex) | 2 | -- |
+| 2 | Quaternions | 4 | commutativity |
+| 3 | Octonions | 8 | associativity |
+
+The construction uses a hybrid representation:
+
+- **Type-level**: `CayleyDickson<Re, Im>` for compile-time type construction where both components are statically known
+- **Runtime**: `AlgebraValue` indirect enum for arithmetic with dynamically computed operands
+
+This hybrid is necessary because Swift can construct unary generic metatypes at runtime (e.g. `n.successor`) but cannot construct binary generic types from two independently computed type parameters.
+
+```swift
+// AlgebraValue: runtime representation
+indirect enum AlgebraValue {
+    case scalar(any Integer.Type)         // level 0: an integer
+    case pair(AlgebraValue, AlgebraValue) // level n+1: a Cayley-Dickson pair
+}
+
+// CayleyDickson<Re, Im>: type-level representation
+enum CayleyDickson<Re: Algebra, Im: Algebra>: Algebra { ... }
+```
+
+#### Arithmetic
+
+Cayley-Dickson multiplication follows the recursive formula:
+
+```
+(a, b) * (c, d) = (a*c - conj(d)*b, d*a + b*conj(c))
+```
+
+where conjugation is: `conj(scalar) = scalar`, `conj(a, b) = (conj(a), -b)`.
+
+Addition is component-wise: `(a, b) + (c, d) = (a + c, b + d)`.
+
+The norm (squared modulus) sums the squares of all scalar components: `N(a, b) = N(a) + N(b)`.
+
+Operands at different depths are auto-embedded to matching depth, so a scalar can be added to or multiplied by a Gaussian integer directly.
+
+#### Convenience constructors
+
+```swift
+gaussian(a, b)       // Gaussian integer: a + bi
+quaternion(a, b, c, d) // quaternion: a + bi + cj + dk (stored as ((a,b), (c,d)))
+```
+
 ## Macros
 
 Four freestanding expression macros evaluate integer arithmetic at compile time. They are implemented as a Swift compiler plugin using SwiftSyntax.
@@ -286,6 +338,19 @@ assert(churchToInt(#Church(5)) == 5)
 #PeanoAssert(hyperop(3, 2, 3) == 8)
 #PeanoAssert(ackermann(2, 2) == 7)
 assertEqual(#PeanoType(fibonacci(6)), #Peano(8))
+
+// Cayley-Dickson: Gaussian integers
+let z1 = gaussian(One, Two)         // 1 + 2i
+let z2 = gaussian(Three, MinusOne)  // 3 - i
+assert(z1 + z2 == gaussian(Four, One))        // (1+2i) + (3-i) = 4+i
+assert(z1 * z2 == gaussian(Five, Five))        // (1+2i)(3-i) = 5+5i
+assert(conjugate(z1) == gaussian(One, MinusTwo)) // conj(1+2i) = 1-2i
+assert(norm(z1) == AlgebraValue.scalar(Five))  // |1+2i|² = 5
+
+// Cayley-Dickson: quaternion non-commutativity
+let qi = quaternion(Zip, One, Zip, Zip)  // i
+let qj = quaternion(Zip, Zip, One, Zip)  // j
+assert(qi * qj != qj * qi)  // quaternion multiplication is non-commutative
 ```
 
 ## Building
