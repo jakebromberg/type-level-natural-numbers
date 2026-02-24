@@ -13,12 +13,14 @@ type-level-natural-numbers/main.swift    -- Xcode target entry point
 Sources/
   PeanoNumbers/                          -- library: types, operators, macro declarations
     PeanoTypes.swift                     -- protocols, Zero, AddOne, SubOne, operators, assertEqual
+    ChurchNumerals.swift                 -- Church numeral encoding (ChurchNumeral, ChurchZero, ChurchSucc, ChurchAdd, ChurchMul)
     Macros.swift                         -- @freestanding macro declarations
   PeanoNumbersMacros/                    -- .macro target: compiler plugin
     Plugin.swift                         -- CompilerPlugin entry point
     PeanoMacro.swift                     -- #Peano(n) implementation
     PeanoTypeMacro.swift                 -- #PeanoType(expr) implementation
     PeanoAssertMacro.swift               -- #PeanoAssert(expr) implementation
+    ChurchMacro.swift                    -- #Church(n) implementation
     ExpressionEvaluator.swift            -- shared arithmetic evaluator
     Diagnostics.swift                    -- PeanoDiagnostic enum
   PeanoNumbersClient/                    -- SPM executable: exercises everything
@@ -28,6 +30,7 @@ Tests/
     PeanoMacroTests.swift
     PeanoTypeMacroTests.swift
     PeanoAssertMacroTests.swift
+    ChurchMacroTests.swift
 ```
 
 ## Building and testing
@@ -72,3 +75,4 @@ The Xcode target is self-contained -- it does not depend on the SPM package. It 
 - `worktree-macros` -- extends integer-extension with Swift macros (`#Peano`, `#PeanoType`, `#PeanoAssert`) for compile-time arithmetic.
 - `worktree-simplify-protocols` -- extends macros: simplifies to 3 protocols, switches to right-hand recursion, adds `<=`/`>=`.
 - `worktree-arithmetic-extensions` -- extends simplify-protocols: adds exponentiation, monus, division/modulo, factorial, fibonacci, GCD; extends macro evaluator.
+- `worktree-advanced-extensions` -- extends arithmetic-extensions: adds hyperoperation, Ackermann function, Church numeral encoding with `#Church` macro.

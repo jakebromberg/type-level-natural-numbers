@@ -175,6 +175,33 @@ final class PeanoAssertMacroTests: XCTestCase {
         )
     }
 
+    func testHyperopPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(hyperop(3, 2, 3) == 8)",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testAckermannPasses() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(ackermann(2, 2) == 7)",
+            expandedSource: "()",
+            macros: peanoAssertMacros
+        )
+    }
+
+    func testHyperopFails() throws {
+        assertMacroExpansion(
+            "#PeanoAssert(hyperop(1, 2, 3) == 6)",
+            expandedSource: "#PeanoAssert(hyperop(1, 2, 3) == 6)",
+            diagnostics: [
+                DiagnosticSpec(message: "Peano assertion failed: hyperop(1, 2, 3) is 5, not 6", line: 1, column: 1),
+            ],
+            macros: peanoAssertMacros
+        )
+    }
+
     func testExponentiationFails() throws {
         assertMacroExpansion(
             "#PeanoAssert(2 ** 3 == 9)",
