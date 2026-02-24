@@ -51,9 +51,3 @@ public struct PeanoAssertMacro: ExpressionMacro {
         ])
     }
 }
-
-struct SimpleDiagnosticMessage: DiagnosticMessage {
-    let message: String
-    let diagnosticID: MessageID
-    let severity: DiagnosticSeverity
-}

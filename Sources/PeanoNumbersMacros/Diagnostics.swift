@@ -17,3 +17,9 @@ enum PeanoDiagnostic: String, DiagnosticMessage {
     var diagnosticID: MessageID { MessageID(domain: "PeanoNumbersMacros", id: rawValue) }
     var severity: DiagnosticSeverity { .error }
 }
+
+struct SimpleDiagnosticMessage: DiagnosticMessage {
+    let message: String
+    let diagnosticID: MessageID
+    let severity: DiagnosticSeverity
+}
