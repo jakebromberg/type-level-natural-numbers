@@ -157,6 +157,54 @@ gcd(a, 0) = a
 gcd(a, b) = gcd(b, a % b)
 ```
 
+### Hyperoperation (`hyperop`)
+
+The hyperoperation sequence generalizes successor, addition, multiplication, and exponentiation into a single recursive function:
+
+```
+H(0, a, b)       = S(b)          (successor)
+H(1, a, b)       = a + b         (addition)
+H(2, a, b)       = a * b         (multiplication)
+H(3, a, b)       = a ** b        (exponentiation)
+H(4, a, b)       = a ↑↑ b        (tetration)
+
+H(S(n), a, 0)    = identity(n)   -- a for n=0, 0 for n=1, 1 for n>=2
+H(S(n), a, S(b)) = H(n, a, H(S(n), a, b))
+```
+
+Natural-only by definition.
+
+### Ackermann function (`ackermann`)
+
+A total computable function that grows faster than any primitive recursive function:
+
+```
+A(0, n)       = S(n)
+A(S(m), 0)    = A(m, 1)
+A(S(m), S(n)) = A(m, A(S(m), n))
+```
+
+Natural-only by definition. Only small inputs are practical (the function grows extremely fast).
+
+### Church numerals
+
+A second encoding strategy alongside Peano types. Where Peano types encode the *structure* of a number (nested successors), Church numerals encode the *behavior* (function application count): `church(n)(f)(x) = f^n(x)`.
+
+```swift
+protocol ChurchNumeral {
+    static func apply<T>(_ f: @escaping (T) -> T, to x: T) -> T
+}
+
+enum ChurchZero: ChurchNumeral { ... }   // applies f zero times
+enum ChurchSucc<N: ChurchNumeral>: ChurchNumeral { ... }  // applies f one more time
+```
+
+Church arithmetic is defined at the type level:
+- `ChurchAdd<A, B>`: applies `f` a total of `a + b` times
+- `ChurchMul<A, B>`: applies `b(f)` a total of `a` times
+
+Convert to `Int` via `churchToInt(_:)`.
+
 ### Type-level arithmetic (Xcode target)
 
 A parallel compile-time arithmetic system lets the Swift type checker verify equalities statically. `Sum<L, R>` and `Product<L, R>` implement type-level addition and multiplication, verified via `assertEqual<T: Natural>(_: T.Type, _: T.Type)`.
@@ -165,7 +213,7 @@ Due to Swift's conditional conformance limitations, `Sum` supports L up to N3, a
 
 ## Macros
 
-Three freestanding expression macros evaluate integer arithmetic at compile time. They are implemented as a Swift compiler plugin using SwiftSyntax.
+Four freestanding expression macros evaluate integer arithmetic at compile time. They are implemented as a Swift compiler plugin using SwiftSyntax.
 
 ### `#Peano(n)` -- integer literal to Peano metatype
 
@@ -179,7 +227,7 @@ Converts an integer literal to its Peano type representation:
 
 ### `#PeanoType(expr)` -- compile-time arithmetic
 
-Evaluates an arithmetic expression at macro expansion time and emits the concrete Peano type. Supports `+`, `-`, `*`, `**`, `.-`, `/`, `%`, `negate()`, `factorial()`, `fibonacci()`, `gcd()`:
+Evaluates an arithmetic expression at macro expansion time and emits the concrete Peano type. Supports `+`, `-`, `*`, `**`, `.-`, `/`, `%`, `negate()`, `factorial()`, `fibonacci()`, `gcd()`, `hyperop()`, `ackermann()`:
 
 ```swift
 #PeanoType(2 + 3)       // expands to: AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>.self
@@ -205,6 +253,15 @@ Evaluates a comparison at macro expansion time. Passing assertions expand to `()
 
 Supports `==`, `!=`, `<`, `>`, `<=`, `>=`.
 
+### `#Church(n)` -- integer literal to Church numeral type
+
+Converts a nonnegative integer literal to its Church numeral type representation:
+
+```swift
+#Church(0)  // expands to: ChurchZero.self
+#Church(3)  // expands to: ChurchSucc<ChurchSucc<ChurchSucc<ChurchZero>>>.self
+```
+
 ## Examples
 
 ```swift
@@ -219,10 +276,21 @@ assert(factorial(Three) == #Peano(6))
 assert(fibonacci(Three) == Two)
 assert(gcd(#Peano(6) as! any Natural.Type, #Peano(4) as! any Natural.Type) == Two)
 
+// Hyperoperations and Ackermann
+assert(hyperop(Three, Two, Three) == #Peano(8))   // H(3,2,3) = 2^3 = 8
+assert(ackermann(Two, Two) == #Peano(7))           // A(2,2) = 7
+
+// Church numerals
+let c3 = ChurchSucc<ChurchSucc<ChurchSucc<ChurchZero>>>.self
+assert(churchToInt(c3) == 3)
+assert(churchToInt(#Church(5)) == 5)
+
 // Compile-time assertions
 #PeanoAssert(2 ** 3 == 8)
 #PeanoAssert(factorial(4) == 24)
 #PeanoAssert(gcd(6, 4) == 2)
+#PeanoAssert(hyperop(3, 2, 3) == 8)
+#PeanoAssert(ackermann(2, 2) == 7)
 assertEqual(#PeanoType(fibonacci(6)), #Peano(8))
 ```
 

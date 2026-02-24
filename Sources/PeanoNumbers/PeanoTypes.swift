@@ -250,6 +250,67 @@ public func gcd(_ a: any Natural.Type, _ b: any Natural.Type) -> any Natural.Typ
     return gcd(b, a % b)
 }
 
+// MARK: - Hyperoperation
+
+/// Int hyperoperation (enables `hyperop()` in macro expressions like `#PeanoType(hyperop(3, 2, 3))`).
+public func hyperop(_ n: Int, _ a: Int, _ b: Int) -> Int {
+    if n == 0 { return b + 1 }                        // H(0, a, b) = S(b)
+    if n == 1 && b == 0 { return a }                   // H(1, a, 0) = a
+    if n == 2 && b == 0 { return 0 }                   // H(2, a, 0) = 0
+    if b == 0 { return 1 }                             // H(n>=3, a, 0) = 1
+    return hyperop(n - 1, a, hyperop(n, a, b - 1))    // H(S(n), a, S(b)) = H(n, a, H(S(n), a, b))
+}
+
+/// Hyperoperation `H(n, a, b)` generalizing successor, addition, multiplication, exponentiation, and beyond.
+///
+/// ```
+/// H(0, a, b) = S(b)          (successor)
+/// H(1, a, b) = a + b         (addition)
+/// H(2, a, b) = a * b         (multiplication)
+/// H(3, a, b) = a ** b        (exponentiation)
+/// H(4, a, b) = a ↑↑ b        (tetration)
+/// ```
+///
+/// Recursive definition:
+/// ```
+/// H(0, a, b)       = S(b)
+/// H(S(n), a, 0)    = identity(n)     -- a for n=0, 0 for n=1, 1 for n>=2
+/// H(S(n), a, S(b)) = H(n, a, H(S(n), a, b))
+/// ```
+public func hyperop(_ n: any Natural.Type, _ a: any Natural.Type, _ b: any Natural.Type) -> any Natural.Type {
+    if n == Zero.self { return b.successor }                                      // H(0, a, b) = S(b)
+    let nPred = n.predecessor as! any Natural.Type
+    if b == Zero.self {
+        if nPred == Zero.self { return a }                                        // H(1, a, 0) = a
+        if nPred == AddOne<Zero>.self { return Zero.self }                        // H(2, a, 0) = 0
+        return AddOne<Zero>.self                                                  // H(n>=3, a, 0) = 1
+    }
+    return hyperop(nPred, a, hyperop(n, a, b.predecessor as! any Natural.Type))  // H(S(n), a, S(b)) = H(n, a, H(S(n), a, b))
+}
+
+// MARK: - Ackermann function
+
+/// Int Ackermann function (enables `ackermann()` in macro expressions like `#PeanoType(ackermann(2, 2))`).
+public func ackermann(_ m: Int, _ n: Int) -> Int {
+    if m == 0 { return n + 1 }
+    if n == 0 { return ackermann(m - 1, 1) }
+    return ackermann(m - 1, ackermann(m, n - 1))
+}
+
+/// Ackermann function: a total computable function that grows faster than any primitive recursive function.
+///
+/// ```
+/// A(0, n)    = S(n)
+/// A(S(m), 0) = A(m, 1)
+/// A(S(m), S(n)) = A(m, A(S(m), n))
+/// ```
+public func ackermann(_ m: any Natural.Type, _ n: any Natural.Type) -> any Natural.Type {
+    if m == Zero.self { return n.successor }                                      // A(0, n) = S(n)
+    let mPred = m.predecessor as! any Natural.Type
+    if n == Zero.self { return ackermann(mPred, AddOne<Zero>.self) }              // A(S(m), 0) = A(m, 1)
+    return ackermann(mPred, ackermann(m, n.predecessor as! any Natural.Type))    // A(S(m), S(n)) = A(m, A(S(m), n))
+}
+
 // MARK: - Type equality assertions
 
 /// Compile-time type equality assertion. Compiles only when both arguments

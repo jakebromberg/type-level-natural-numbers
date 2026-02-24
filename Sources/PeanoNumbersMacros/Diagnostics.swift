@@ -7,9 +7,10 @@ enum PeanoDiagnostic: String, DiagnosticMessage {
     case expectedExpression = "#PeanoType requires an arithmetic expression"
     case unsupportedExpression = "Unsupported expression in Peano arithmetic"
     case unsupportedOperator = "Unsupported operator in Peano arithmetic"
-    case unsupportedFunction = "Unsupported function in Peano arithmetic (supported: negate, factorial, fibonacci, gcd)"
+    case unsupportedFunction = "Unsupported function in Peano arithmetic (supported: negate, factorial, fibonacci, gcd, hyperop, ackermann)"
     case expectedComparison = "#PeanoAssert requires a comparison expression (==, !=, <, >, <=, >=)"
     case unsupportedComparison = "Unsupported comparison operator"
+    case churchRequiresNonnegative = "#Church requires a nonnegative integer literal (e.g. #Church(3))"
 
     var message: String { rawValue }
     var diagnosticID: MessageID { MessageID(domain: "PeanoNumbersMacros", id: rawValue) }
