@@ -197,43 +197,75 @@ public func -(lhs: AlgebraValue, rhs: AlgebraValue) -> AlgebraValue {
     lhs + negate(rhs)
 }
 
+// MARK: - Sign parameter
+
+/// Sign parameter for generalized Cayley-Dickson multiplication.
+///
+/// The generalized product formula is:
+///   `(a, b) * (c, d) = (a*c + ε*conj(d)*b, d*a + b*conj(c))`
+///
+/// where ε determines the algebra:
+/// - **standard (ε = -1)**: complex numbers, quaternions, octonions
+/// - **split (ε = +1)**: split-complex, split-quaternions
+/// - **dual (ε = 0)**: dual numbers (nilpotent imaginary unit: ε² = 0)
+public enum CayleyDicksonSign {
+    case standard  // ε = -1
+    case split     // ε = +1
+    case dual      // ε = 0
+}
+
 // MARK: - Multiplication
 
-/// Cayley-Dickson multiplication.
+/// Cayley-Dickson multiplication with explicit sign parameter.
 ///
-/// The recursive formula that defines the entire hierarchy:
+/// The generalized formula:
+///   `(a, b) * (c, d) = (a*c + ε*conj(d)*b, d*a + b*conj(c))`
 ///
-///   `(a, b) * (c, d) = (a*c - conj(d)*b, d*a + b*conj(c))`
-///
-/// At each level of the construction:
-/// - Level 0 (scalars): ordinary integer multiplication
-/// - Level 1 (Gaussian integers): `(a+bi)(c+di) = (ac-db) + (da+bc)i`
-///   (since conj is trivial on integers)
-/// - Level 2 (quaternions): non-commutative multiplication emerges
-/// - Level 3 (octonions): non-associative multiplication emerges
+/// The sign determines which algebra the multiplication belongs to:
+/// - `.standard` (ε = -1): complex numbers, quaternions, octonions
+/// - `.split` (ε = +1): split-complex, split-quaternions
+/// - `.dual` (ε = 0): dual numbers (ε² = 0)
 ///
 /// Operands at different depths are auto-embedded to matching depth.
-public func *(lhs: AlgebraValue, rhs: AlgebraValue) -> AlgebraValue {
+public func multiply(_ lhs: AlgebraValue, _ rhs: AlgebraValue,
+                     sign: CayleyDicksonSign = .standard) -> AlgebraValue {
     let d = max(depth(lhs), depth(rhs))
-    return mulSameDepth(embed(lhs, toDepth: d), embed(rhs, toDepth: d))
+    return mulSameDepth(embed(lhs, toDepth: d), embed(rhs, toDepth: d), sign: sign)
+}
+
+/// Standard Cayley-Dickson multiplication (ε = -1).
+///
+/// The `*` operator uses the standard sign, preserving backward compatibility.
+/// Use `multiply(_:_:sign:)` for split or dual multiplication.
+public func *(lhs: AlgebraValue, rhs: AlgebraValue) -> AlgebraValue {
+    multiply(lhs, rhs, sign: .standard)
 }
 
 /// Multiply two AlgebraValues known to be at the same depth.
 ///
-/// Uses the Cayley-Dickson product formula:
-///   `(a, b) * (c, d) = (a*c - conj(d)*b, d*a + b*conj(c))`
-private func mulSameDepth(_ lhs: AlgebraValue, _ rhs: AlgebraValue) -> AlgebraValue {
+/// Uses the generalized Cayley-Dickson product formula:
+///   `(a, b) * (c, d) = (a*c + ε*conj(d)*b, d*a + b*conj(c))`
+private func mulSameDepth(_ lhs: AlgebraValue, _ rhs: AlgebraValue,
+                          sign: CayleyDicksonSign) -> AlgebraValue {
     switch (lhs, rhs) {
     case (.scalar(let a), .scalar(let b)):
         // Delegate to Peano integer multiplication
         return .scalar((a as any Integer.Type) * (b as any Integer.Type))
     case (.pair(let a, let b), .pair(let c, let d)):
-        // (a, b) * (c, d) = (a*c - conj(d)*b, d*a + b*conj(c))
-        let ac = mulSameDepth(a, c)
-        let conjD_b = mulSameDepth(conjugate(d), b)
-        let da = mulSameDepth(d, a)
-        let b_conjC = mulSameDepth(b, conjugate(c))
-        return .pair(addSameDepth(ac, negate(conjD_b)), addSameDepth(da, b_conjC))
+        // (a, b) * (c, d) = (a*c + ε*conj(d)*b, d*a + b*conj(c))
+        let ac = mulSameDepth(a, c, sign: sign)
+        let conjD_b = mulSameDepth(conjugate(d), b, sign: sign)
+        let da = mulSameDepth(d, a, sign: sign)
+        let b_conjC = mulSameDepth(b, conjugate(c), sign: sign)
+
+        let realPart: AlgebraValue
+        switch sign {
+        case .standard: realPart = addSameDepth(ac, negate(conjD_b))  // ac - conj(d)*b
+        case .split:    realPart = addSameDepth(ac, conjD_b)          // ac + conj(d)*b
+        case .dual:     realPart = ac                                  // ac + 0
+        }
+
+        return .pair(realPart, addSameDepth(da, b_conjC))
     default:
         fatalError("AlgebraValue depth mismatch in mulSameDepth")
     }
@@ -241,25 +273,29 @@ private func mulSameDepth(_ lhs: AlgebraValue, _ rhs: AlgebraValue) -> AlgebraVa
 
 // MARK: - Norm
 
-/// Cayley-Dickson norm (squared modulus).
+/// Cayley-Dickson norm (squared modulus) with explicit sign parameter.
 ///
-/// Returns a scalar `AlgebraValue` representing the sum of squares of all components:
-/// - `N(scalar) = scalar * scalar`
-/// - `N(a, b) = N(a) + N(b)`
+/// The generalized norm uses the sign parameter to weight the imaginary contribution:
+/// - `N(scalar) = scalar * scalar` (sign-independent)
+/// - `N(a, b) = N(a) - ε * N(b)` where ε is the sign parameter
 ///
-/// The norm is always a nonnegative integer. It is multiplicative: `N(x*y) = N(x)*N(y)`.
+/// For the standard sign (ε = -1): `N(a, b) = N(a) + N(b)` (sum of squares)
+/// For the split sign (ε = +1): `N(a, b) = N(a) - N(b)` (difference of squares)
+/// For the dual sign (ε = 0): `N(a, b) = N(a)` (imaginary part contributes nothing)
 ///
-/// For Gaussian integers: `N(a + bi) = a² + b²`.
-/// For quaternions: `N(a + bi + cj + dk) = a² + b² + c² + d²`.
-public func norm(_ a: AlgebraValue) -> AlgebraValue {
+/// The standard norm is always a nonnegative integer and is multiplicative: `N(x*y) = N(x)*N(y)`.
+public func norm(_ a: AlgebraValue, sign: CayleyDicksonSign = .standard) -> AlgebraValue {
     switch a {
     case .scalar(let n):
         return .scalar((n as any Integer.Type) * (n as any Integer.Type))
     case .pair(let re, let im):
-        let nRe = norm(re)
-        let nIm = norm(im)
-        // Both norms are scalars, so we can add them directly
-        return addSameDepth(nRe, nIm)
+        let nRe = norm(re, sign: sign)
+        let nIm = norm(im, sign: sign)
+        switch sign {
+        case .standard: return addSameDepth(nRe, nIm)           // N(a) + N(b)
+        case .split:    return addSameDepth(nRe, negate(nIm))   // N(a) - N(b)
+        case .dual:     return nRe                               // N(a)
+        }
     }
 }
 
