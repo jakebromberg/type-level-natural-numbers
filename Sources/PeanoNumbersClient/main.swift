@@ -261,3 +261,103 @@ assertEqual(#PeanoType(ackermann(2, 2)), #Peano(7))
 #PeanoAssert(hyperop(1, 2, 3) == 5)
 #PeanoAssert(ackermann(2, 2) == 7)
 #PeanoAssert(ackermann(0, 3) == 4)
+
+// MARK: - Cayley-Dickson construction
+
+// -- Gaussian integer construction --
+
+let z1 = gaussian(One, Two)         // 1 + 2i
+let z2 = gaussian(Three, MinusOne)  // 3 - i
+
+// -- Gaussian integer addition: (1+2i) + (3-i) = 4+i --
+
+assert(z1 + z2 == gaussian(Four, One))
+
+// -- Gaussian integer multiplication --
+// (1+2i)(3-i) = 3 - i + 6i - 2i² = 3 + 5i + 2 = 5 + 5i
+
+assert(z1 * z2 == gaussian(Five, Five))
+
+// -- Conjugation: conj(1+2i) = 1-2i --
+
+assert(conjugate(z1) == gaussian(One, MinusTwo))
+
+// -- Negation: -(1+2i) = -1-2i --
+
+assert(negate(z1) == gaussian(MinusOne, MinusTwo))
+
+// -- Norm: |1+2i|² = 1² + 2² = 5 --
+
+assert(norm(z1) == AlgebraValue.scalar(Five))
+
+// -- Norm: |3-i|² = 9 + 1 = 10 --
+
+let Ten = Five + Five
+assert(norm(z2) == AlgebraValue.scalar(Ten))
+
+// -- Scalar embedding: 3 + (1+2i) = 4+2i --
+// A scalar auto-embeds as (scalar, 0) when added to a pair.
+
+assert(AlgebraValue.scalar(Three) + z1 == gaussian(Four, Two))
+
+// -- Scalar multiplication: 2 * (1+2i) = 2+4i --
+
+assert(AlgebraValue.scalar(Two) * z1 == gaussian(Two, Four))
+
+// -- Subtraction: (1+2i) - (3-i) = -2+3i --
+
+assert(z1 - z2 == gaussian(MinusTwo, Three))
+
+// -- Multiplicative identity: (1+0i) * z = z --
+
+let complexOne = gaussian(One, Zip)
+assert(complexOne * z1 == z1)
+assert(z1 * complexOne == z1)
+
+// -- Additive identity: (0+0i) + z = z --
+
+let complexZero = gaussian(Zip, Zip)
+assert(complexZero + z1 == z1)
+
+// -- Imaginary unit: i² = -1 --
+// i = (0, 1), i*i = (0*0 - conj(1)*1, 1*0 + 1*conj(0)) = (0 - 1, 0 + 0) = (-1, 0)
+
+let i = gaussian(Zip, One)
+assert(i * i == gaussian(MinusOne, Zip))
+
+// -- Norm is multiplicative: N(z1*z2) = N(z1)*N(z2) --
+// N(z1) = 5, N(z2) = 10, N(z1*z2) should be 50
+
+let Fifty = AlgebraValue.scalar(Ten * Five)
+assert(norm(z1 * z2) == Fifty)
+assert(norm(z1) * norm(z2) == Fifty)
+
+// -- Type-level construction bridges to AlgebraValue --
+
+assertEqual(CayleyDickson<AddOne<Zero>, AddOne<AddOne<Zero>>>.algebraValue, gaussian(One, Two))
+
+// -- Quaternion construction --
+
+let q1 = quaternion(One, Two, Three, Four)    // 1 + 2i + 3j + 4k
+let q2 = quaternion(Five, Six, MinusOne, Two) // 5 + 6i - j + 2k
+
+// -- Quaternion addition is component-wise --
+
+let qSum = quaternion(Six, #Peano(8) as! any Natural.Type, Two, Six)
+assert(q1 + q2 == qSum)
+
+// -- Quaternion non-commutativity: i*j != j*i --
+// At the quaternion level, multiplication is not commutative.
+
+let qi = quaternion(Zip, One, Zip, Zip)   // i (as quaternion)
+let qj = quaternion(Zip, Zip, One, Zip)   // j (as quaternion)
+assert(qi * qj != qj * qi)
+
+// -- Quaternion norm: |1+2i+3j+4k|² = 1+4+9+16 = 30 --
+
+let Thirty = AlgebraValue.scalar(Six * Five)
+assert(norm(q1) == Thirty)
+
+// -- Scalar embeds into quaternion --
+
+assert(AlgebraValue.scalar(One) + q1 == quaternion(Two, Two, Three, Four))
