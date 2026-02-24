@@ -441,6 +441,279 @@ assert(churchToInt(ChurchAdd<ChurchSucc<ChurchSucc<ChurchZero>>, ChurchSucc<Chur
 // Church multiplication: 2 * 3 = 6
 assert(churchToInt(ChurchMul<ChurchSucc<ChurchSucc<ChurchZero>>, ChurchSucc<ChurchSucc<ChurchSucc<ChurchZero>>>>.self) == 6)
 
+// MARK: - Algebra protocol (Cayley-Dickson construction)
+
+/// Root protocol for types in the Cayley-Dickson algebra hierarchy.
+///
+/// The Cayley-Dickson construction builds higher-dimensional algebras from pairs:
+///   Level 0: Integers (scalars)
+///   Level 1: Gaussian integers (complex integers: a + bi)
+///   Level 2: Quaternions (a + bi + cj + dk)
+///   Level 3: Octonions (8 dimensions)
+///
+/// Each level doubles the dimension. Algebraic properties are progressively lost:
+/// commutativity at quaternions (level 2), associativity at octonions (level 3).
+protocol Algebra {
+    static var algebraValue: AlgebraValue { get }
+}
+
+// MARK: - AlgebraValue (runtime representation)
+
+/// Runtime representation of a Cayley-Dickson algebra element.
+///
+/// Swift cannot construct binary generic types (`CayleyDickson<A, B>.self`) from
+/// two independently computed type parameters at runtime. This enum provides the
+/// runtime arithmetic that the type-level representation cannot.
+indirect enum AlgebraValue {
+    case scalar(any Integer.Type)
+    case pair(AlgebraValue, AlgebraValue)
+}
+
+/// Manual Equatable conformance because auto-synthesis cannot handle `any Integer.Type`.
+/// Scalar comparison uses metatype equality (`==`), which is structural in Swift.
+/// Operands at different depths are auto-embedded to matching depth before comparison.
+extension AlgebraValue: Equatable {
+    static func ==(lhs: AlgebraValue, rhs: AlgebraValue) -> Bool {
+        let d = max(depth(lhs), depth(rhs))
+        let l = embed(lhs, toDepth: d)
+        let r = embed(rhs, toDepth: d)
+        return equalSameDepth(l, r)
+    }
+}
+
+private func equalSameDepth(_ lhs: AlgebraValue, _ rhs: AlgebraValue) -> Bool {
+    switch (lhs, rhs) {
+    case (.scalar(let a), .scalar(let b)):
+        return a == b
+    case (.pair(let a, let b), .pair(let c, let d)):
+        return equalSameDepth(a, c) && equalSameDepth(b, d)
+    default:
+        return false
+    }
+}
+
+// MARK: - CayleyDickson type (type-level representation)
+
+/// Cayley-Dickson pair at the type level: represents `(Re, Im)`.
+/// Use for compile-time type construction; for runtime arithmetic, use AlgebraValue.
+enum CayleyDickson<Re: Algebra, Im: Algebra>: Algebra {
+    static var algebraValue: AlgebraValue {
+        .pair(Re.algebraValue, Im.algebraValue)
+    }
+}
+
+// MARK: - Integer Algebra conformances
+
+extension Zero: Algebra {
+    static var algebraValue: AlgebraValue { .scalar(Zero.self) }
+}
+
+extension AddOne: Algebra {
+    static var algebraValue: AlgebraValue { .scalar(Self.self) }
+}
+
+extension SubOne: Algebra {
+    static var algebraValue: AlgebraValue { .scalar(Self.self) }
+}
+
+// MARK: - Depth, embedding, and zero construction
+
+/// Depth of a value in the Cayley-Dickson hierarchy.
+func depth(_ v: AlgebraValue) -> Int {
+    switch v {
+    case .scalar: return 0
+    case .pair(let a, _): return depth(a) + 1
+    }
+}
+
+/// The zero element at a given depth.
+func zero(ofDepth d: Int) -> AlgebraValue {
+    if d <= 0 { return .scalar(Zero.self) }
+    let z = zero(ofDepth: d - 1)
+    return .pair(z, z)
+}
+
+/// Embed a value to a target depth by wrapping as `(value, 0)` recursively.
+func embed(_ v: AlgebraValue, toDepth d: Int) -> AlgebraValue {
+    let current = depth(v)
+    if current >= d { return v }
+    return embed(.pair(v, zero(ofDepth: current)), toDepth: d)
+}
+
+// MARK: - Conjugation
+
+/// Cayley-Dickson conjugation.
+/// Scalars: `conj(n) = n`. Pairs: `conj(a, b) = (conj(a), -b)`.
+func conjugate(_ a: AlgebraValue) -> AlgebraValue {
+    switch a {
+    case .scalar:
+        return a
+    case .pair(let re, let im):
+        return .pair(conjugate(re), negate(im))
+    }
+}
+
+// MARK: - AlgebraValue negation
+
+/// Negate an AlgebraValue: flip the sign of every scalar component.
+func negate(_ a: AlgebraValue) -> AlgebraValue {
+    switch a {
+    case .scalar(let n):
+        return .scalar(negate(n))
+    case .pair(let re, let im):
+        return .pair(negate(re), negate(im))
+    }
+}
+
+// MARK: - AlgebraValue addition
+
+/// Cayley-Dickson addition: component-wise at every level.
+/// Operands at different depths are auto-embedded to matching depth.
+func +(lhs: AlgebraValue, rhs: AlgebraValue) -> AlgebraValue {
+    let d = max(depth(lhs), depth(rhs))
+    return addSameDepth(embed(lhs, toDepth: d), embed(rhs, toDepth: d))
+}
+
+private func addSameDepth(_ lhs: AlgebraValue, _ rhs: AlgebraValue) -> AlgebraValue {
+    switch (lhs, rhs) {
+    case (.scalar(let a), .scalar(let b)):
+        return .scalar((a as any Integer.Type) + (b as any Integer.Type))
+    case (.pair(let a, let b), .pair(let c, let d)):
+        return .pair(addSameDepth(a, c), addSameDepth(b, d))
+    default:
+        fatalError("AlgebraValue depth mismatch in addSameDepth")
+    }
+}
+
+// MARK: - AlgebraValue subtraction
+
+/// Cayley-Dickson subtraction: `lhs + negate(rhs)`.
+func -(lhs: AlgebraValue, rhs: AlgebraValue) -> AlgebraValue {
+    lhs + negate(rhs)
+}
+
+// MARK: - AlgebraValue multiplication
+
+/// Cayley-Dickson multiplication.
+/// `(a, b) * (c, d) = (a*c - conj(d)*b, d*a + b*conj(c))`
+/// Operands at different depths are auto-embedded to matching depth.
+func *(lhs: AlgebraValue, rhs: AlgebraValue) -> AlgebraValue {
+    let d = max(depth(lhs), depth(rhs))
+    return mulSameDepth(embed(lhs, toDepth: d), embed(rhs, toDepth: d))
+}
+
+private func mulSameDepth(_ lhs: AlgebraValue, _ rhs: AlgebraValue) -> AlgebraValue {
+    switch (lhs, rhs) {
+    case (.scalar(let a), .scalar(let b)):
+        return .scalar((a as any Integer.Type) * (b as any Integer.Type))
+    case (.pair(let a, let b), .pair(let c, let d)):
+        // (a, b) * (c, d) = (a*c - conj(d)*b, d*a + b*conj(c))
+        let ac = mulSameDepth(a, c)
+        let conjD_b = mulSameDepth(conjugate(d), b)
+        let da = mulSameDepth(d, a)
+        let b_conjC = mulSameDepth(b, conjugate(c))
+        return .pair(addSameDepth(ac, negate(conjD_b)), addSameDepth(da, b_conjC))
+    default:
+        fatalError("AlgebraValue depth mismatch in mulSameDepth")
+    }
+}
+
+// MARK: - Norm
+
+/// Cayley-Dickson norm (squared modulus).
+/// `N(scalar) = scalar²`, `N(a, b) = N(a) + N(b)`.
+/// Returns a scalar AlgebraValue.
+func norm(_ a: AlgebraValue) -> AlgebraValue {
+    switch a {
+    case .scalar(let n):
+        return .scalar((n as any Integer.Type) * (n as any Integer.Type))
+    case .pair(let re, let im):
+        let nRe = norm(re)
+        let nIm = norm(im)
+        return addSameDepth(nRe, nIm)
+    }
+}
+
+// MARK: - Convenience constructors
+
+/// Construct a Gaussian integer (complex integer): `a + bi`.
+func gaussian(_ re: any Integer.Type, _ im: any Integer.Type) -> AlgebraValue {
+    .pair(.scalar(re), .scalar(im))
+}
+
+/// Construct a quaternion: `a + bi + cj + dk` as `((a, b), (c, d))`.
+func quaternion(
+    _ a: any Integer.Type,
+    _ b: any Integer.Type,
+    _ c: any Integer.Type,
+    _ d: any Integer.Type
+) -> AlgebraValue {
+    .pair(gaussian(a, b), gaussian(c, d))
+}
+
+// MARK: - AlgebraValue equality assertion
+
+func assertEqual(_ a: AlgebraValue, _ b: AlgebraValue) {
+    assert(a == b, "assertEqual failed: \(a) != \(b)")
+}
+
+// MARK: - Cayley-Dickson assertions
+
+// -- Gaussian integer construction --
+
+let z1 = gaussian(One, Two)         // 1 + 2i
+let z2 = gaussian(Three, MinusOne)  // 3 - i
+
+// -- Gaussian integer addition: (1+2i) + (3-i) = 4+i --
+
+assert(z1 + z2 == gaussian(Four, One))
+
+// -- Gaussian integer multiplication --
+// (1+2i)(3-i) = 3 - i + 6i - 2i² = 3 + 5i + 2 = 5 + 5i
+
+assert(z1 * z2 == gaussian(Five, Five))
+
+// -- Conjugation: conj(1+2i) = 1-2i --
+
+assert(conjugate(z1) == gaussian(One, MinusTwo))
+
+// -- Negation: -(1+2i) = -1-2i --
+
+assert(negate(z1) == gaussian(MinusOne, MinusTwo))
+
+// -- Norm: |1+2i|² = 1² + 2² = 5 --
+
+assert(norm(z1) == AlgebraValue.scalar(Five))
+
+// -- Scalar embedding: 3 + (1+2i) = 4+2i --
+
+assert(AlgebraValue.scalar(Three) + z1 == gaussian(Four, Two))
+
+// -- Scalar multiplication: 2 * (1+2i) = 2+4i --
+
+assert(AlgebraValue.scalar(Two) * z1 == gaussian(Two, Four))
+
+// -- Imaginary unit: i² = -1 --
+
+let cdI = gaussian(Zip, One)
+assert(cdI * cdI == gaussian(MinusOne, Zip))
+
+// -- Type-level construction bridges to AlgebraValue --
+
+assertEqual(CayleyDickson<AddOne<Zero>, AddOne<AddOne<Zero>>>.algebraValue, gaussian(One, Two))
+
+// -- Quaternion non-commutativity --
+
+let qi = quaternion(Zip, One, Zip, Zip)   // i
+let qj = quaternion(Zip, Zip, One, Zip)   // j
+assert(qi * qj != qj * qi)
+
+// -- Quaternion norm: |1+2i+3j+4k|² = 1+4+9+16 = 30 --
+
+let q1 = quaternion(One, Two, Three, Four)
+let Thirty = AlgebraValue.scalar(Six * Five)
+assert(norm(q1) == Thirty)
+
 // MARK: - Type-level arithmetic
 
 /// A type-level computation that evaluates to a `Natural` type.

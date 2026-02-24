@@ -14,6 +14,7 @@ Sources/
   PeanoNumbers/                          -- library: types, operators, macro declarations
     PeanoTypes.swift                     -- protocols, Zero, AddOne, SubOne, operators, assertEqual
     ChurchNumerals.swift                 -- Church numeral encoding (ChurchNumeral, ChurchZero, ChurchSucc, ChurchAdd, ChurchMul)
+    CayleyDickson.swift                  -- Cayley-Dickson construction (Algebra, AlgebraValue, CayleyDickson, gaussian, quaternion)
     Macros.swift                         -- @freestanding macro declarations
   PeanoNumbersMacros/                    -- .macro target: compiler plugin
     Plugin.swift                         -- CompilerPlugin entry point
@@ -76,3 +77,4 @@ The Xcode target is self-contained -- it does not depend on the SPM package. It 
 - `worktree-simplify-protocols` -- extends macros: simplifies to 3 protocols, switches to right-hand recursion, adds `<=`/`>=`.
 - `worktree-arithmetic-extensions` -- extends simplify-protocols: adds exponentiation, monus, division/modulo, factorial, fibonacci, GCD; extends macro evaluator.
 - `worktree-advanced-extensions` -- extends arithmetic-extensions: adds hyperoperation, Ackermann function, Church numeral encoding with `#Church` macro.
+- `worktree-cayley-dickson` -- extends advanced-extensions: adds Cayley-Dickson construction (Algebra protocol, AlgebraValue, CayleyDickson type, Gaussian integers, quaternions).
