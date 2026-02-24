@@ -405,3 +405,78 @@ assert(#Gaussian(2 + 1, 3 * -1) == gaussian(Three, MinusThree))
 // (the compiler type-checks macro arguments for operator precedence folding,
 // so `gaussian(1, 2)` with Int literals doesn't pass the type-checker --
 // use assertMacroExpansion in tests instead).
+
+// MARK: - Type-level arithmetic
+
+protocol NaturalExpression {
+    associatedtype Result: Natural
+}
+
+// Type aliases for type-level arithmetic
+typealias N0 = Zero
+typealias N1 = AddOne<N0>
+typealias N2 = AddOne<N1>
+typealias N3 = AddOne<N2>
+typealias N4 = AddOne<N3>
+
+// Sum (manually defined -- addition just wraps in AddOne chains)
+enum Sum<L: Natural, R: Natural> {}
+extension Sum: NaturalExpression where L == Zero {
+    typealias Result = R
+}
+extension Sum where L == N1 {
+    typealias Result = AddOne<R>
+}
+extension Sum where L == N2 {
+    typealias Result = AddOne<AddOne<R>>
+}
+extension Sum where L == N3 {
+    typealias Result = AddOne<AddOne<AddOne<R>>>
+}
+
+// Product -- inductive multiplication via helper protocols.
+// Each _TimesN{k} protocol threads the recursion through AddOne's Predecessor,
+// letting a single constrained extension handle any R.
+// (Swift macros cannot generate extensions at module scope, so these are written
+// manually. The @ProductConformance macro captures the pattern for use in
+// non-global contexts; see ProductConformanceMacroTests for expansion examples.)
+
+protocol _TimesN2: Natural {
+    associatedtype _TimesN2Result: Natural
+}
+extension Zero: _TimesN2 {
+    typealias _TimesN2Result = Zero
+}
+extension AddOne: _TimesN2 where Predecessor: _TimesN2 {
+    typealias _TimesN2Result = AddOne<AddOne<Predecessor._TimesN2Result>>
+}
+
+protocol _TimesN3: Natural {
+    associatedtype _TimesN3Result: Natural
+}
+extension Zero: _TimesN3 {
+    typealias _TimesN3Result = Zero
+}
+extension AddOne: _TimesN3 where Predecessor: _TimesN3 {
+    typealias _TimesN3Result = AddOne<AddOne<AddOne<Predecessor._TimesN3Result>>>
+}
+
+enum Product<L: Natural, R: Natural> {}
+extension Product: NaturalExpression where L == Zero {
+    typealias Result = Zero
+}
+extension Product where L == N1 {
+    typealias Result = R
+}
+extension Product where L == N2, R: _TimesN2 {
+    typealias Result = R._TimesN2Result
+}
+extension Product where L == N3, R: _TimesN3 {
+    typealias Result = R._TimesN3Result
+}
+
+// Compile-time type-level assertions
+assertEqual(Sum<N1, N2>.Result.self, #Peano(3))
+assertEqual(Product<N2, N3>.Result.self, #Peano(6))
+assertEqual(Product<N3, N2>.Result.self, #Peano(6))
+assertEqual(Product<N2, N4>.Result.self, #Peano(8))

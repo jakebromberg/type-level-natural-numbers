@@ -9,5 +9,6 @@ struct PeanoNumbersPlugin: CompilerPlugin {
         PeanoAssertMacro.self,
         ChurchMacro.self,
         GaussianMacro.self,
+        ProductConformanceMacro.self,
     ]
 }
