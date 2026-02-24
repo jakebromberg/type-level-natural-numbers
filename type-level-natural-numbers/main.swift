@@ -124,14 +124,46 @@ extension Sum where L == N3 {
     typealias Result = AddOne<AddOne<AddOne<R>>>            // 3 + R = R + 3
 }
 
+// MARK: Inductive multiplication helpers
+
+/// Inductive protocol for type-level multiplication by 2.
+/// Every concrete `Natural` type satisfies this via the conditional
+/// conformance chain on `AddOne`.
+protocol DoublableNatural: Natural {
+    associatedtype Doubled: Natural
+}
+
+extension Zero: DoublableNatural {
+    typealias Doubled = Zero                                    // 0 * 2 = 0
+}
+
+extension AddOne: DoublableNatural where Predecessor: DoublableNatural {
+    typealias Doubled = AddOne<AddOne<Predecessor.Doubled>>     // S(n) * 2 = n*2 + 2
+}
+
+/// Inductive protocol for type-level multiplication by 3.
+protocol TriplableNatural: Natural {
+    associatedtype Tripled: Natural
+}
+
+extension Zero: TriplableNatural {
+    typealias Tripled = Zero                                    // 0 * 3 = 0
+}
+
+extension AddOne: TriplableNatural where Predecessor: TriplableNatural {
+    typealias Tripled = AddOne<AddOne<AddOne<Predecessor.Tripled>>>  // S(n) * 3 = n*3 + 3
+}
+
 // MARK: Product
 
 /// Type-level multiplication. `Product<L, R>.Result` resolves to the
 /// concrete `AddOne<...>` chain representing L * R at compile time.
 ///
-/// The base cases (L == Zero, L == N1) are generic over R. For larger L
-/// values, Swift cannot resolve `Sum<R, R>.Result` for a generic R at
-/// definition time, so specific (L, R) pairs are enumerated.
+/// The base cases (L == Zero, L == N1) are generic over R. For larger
+/// multipliers, inductive helper protocols (`DoublableNatural`,
+/// `TriplableNatural`) thread the recursion through conditional
+/// conformance on `AddOne`, allowing a single extension per multiplier
+/// that works for any R.
 enum Product<L: Natural, R: Natural> {}
 
 extension Product: NaturalExpression where L == Zero {
@@ -142,16 +174,12 @@ extension Product where L == N1 {
     typealias Result = R                                    // 1 * R = R
 }
 
-extension Product where L == N2, R == N1 {
-    typealias Result = N2                                   // 2 * 1 = 2
+extension Product where L == N2, R: DoublableNatural {
+    typealias Result = R.Doubled                            // 2 * R (inductive)
 }
 
-extension Product where L == N2, R == N2 {
-    typealias Result = N4                                   // 2 * 2 = 4
-}
-
-extension Product where L == N2, R == N3 {
-    typealias Result = N6                                   // 2 * 3 = 6
+extension Product where L == N3, R: TriplableNatural {
+    typealias Result = R.Tripled                            // 3 * R (inductive)
 }
 
 // Compile-time addition
@@ -166,3 +194,8 @@ assertEqual(Product<N0, N1>.Result.self, Zip)  // 0 * 1 = 0
 assertEqual(Product<N1, N2>.Result.self, Two)  // 1 * 2 = 2
 assertEqual(Product<N2, N2>.Result.self, Four) // 2 * 2 = 4
 assertEqual(Product<N2, N3>.Result.self, Six)  // 2 * 3 = 6
+
+// Inductive multiplication -- no per-R extensions needed:
+assertEqual(Product<N2, N4>.Result.self, AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>>>>.self)  // 2 * 4 = 8
+assertEqual(Product<N3, N1>.Result.self, Three)    // 3 * 1 = 3
+assertEqual(Product<N3, N2>.Result.self, Six)      // 3 * 2 = 6
