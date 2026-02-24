@@ -12,6 +12,7 @@ enum PeanoDiagnostic: String, DiagnosticMessage {
     case unsupportedComparison = "Unsupported comparison operator"
     case churchRequiresNonnegative = "#Church requires a nonnegative integer literal (e.g. #Church(3))"
     case gaussianRequiresTwoArguments = "#Gaussian requires two integer expression arguments (e.g. #Gaussian(1, 2))"
+    case productConformanceRequiresMultiplier = "#ProductConformance requires an integer literal >= 2"
 
     var message: String { rawValue }
     var diagnosticID: MessageID { MessageID(domain: "PeanoNumbersMacros", id: rawValue) }

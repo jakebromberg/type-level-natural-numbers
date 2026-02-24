@@ -9,13 +9,13 @@ The project has both an Xcode command-line tool and an SPM package:
 ```
 Package.swift                            -- SPM package definition
 type-level-natural-numbers.xcodeproj     -- Xcode project (standalone, does not use SPM)
-type-level-natural-numbers/main.swift    -- Xcode target entry point (convenience bindings, assertions, type-level arithmetic)
+type-level-natural-numbers/main.swift    -- Xcode target entry point (convenience bindings, representative runtime assertions)
 Sources/
   PeanoNumbers/                          -- library: types, operators, macro declarations
     PeanoTypes.swift                     -- protocols, Zero, AddOne, SubOne, operators, assertEqual
     ChurchNumerals.swift                 -- Church numeral encoding (ChurchNumeral, ChurchZero, ChurchSucc, ChurchAdd, ChurchMul)
     CayleyDickson.swift                  -- Cayley-Dickson construction (Algebra, AlgebraValue, CayleyDickson, gaussian, quaternion, sign-parameterized multiply/norm)
-    Macros.swift                         -- @freestanding macro declarations
+    Macros.swift                         -- macro declarations (#Peano, #PeanoType, #PeanoAssert, #Church, #Gaussian, @ProductConformance)
   PeanoNumbersMacros/                    -- .macro target: compiler plugin
     Plugin.swift                         -- CompilerPlugin entry point
     PeanoMacro.swift                     -- #Peano(n) implementation
@@ -23,10 +23,11 @@ Sources/
     PeanoAssertMacro.swift               -- #PeanoAssert(expr) implementation
     ChurchMacro.swift                    -- #Church(n) implementation
     GaussianMacro.swift                  -- #Gaussian(re, im) implementation
+    ProductConformanceMacro.swift        -- @ProductConformance(n) implementation (peer macro for inductive multiplication)
     ExpressionEvaluator.swift            -- shared arithmetic/algebra evaluator (EvalValue, evaluateAlgebraExpression)
     Diagnostics.swift                    -- PeanoDiagnostic enum, SimpleDiagnosticMessage
   PeanoNumbersClient/                    -- SPM executable: exercises everything
-    main.swift                           -- convenience bindings, runtime + compile-time assertions
+    main.swift                           -- convenience bindings, runtime + compile-time assertions, type-level arithmetic (Sum, Product)
 Tests/
   PeanoNumbersMacrosTests/               -- macro expansion tests
     PeanoMacroTests.swift
@@ -34,6 +35,7 @@ Tests/
     PeanoAssertMacroTests.swift
     ChurchMacroTests.swift
     GaussianMacroTests.swift
+    ProductConformanceMacroTests.swift
 ```
 
 ## Building and testing
@@ -52,7 +54,7 @@ swift test                   # run macro expansion tests
 xcodebuild -project type-level-natural-numbers.xcodeproj -scheme type-level-natural-numbers -configuration Debug build
 ```
 
-The Xcode target is self-contained -- it does not depend on the SPM package. It compiles the shared library sources (PeanoTypes.swift, CayleyDickson.swift, ChurchNumerals.swift) directly, and main.swift adds convenience bindings, representative assertions, and Xcode-exclusive type-level arithmetic (NaturalExpression, Sum, Product).
+The Xcode target is self-contained -- it does not depend on the SPM package. It compiles the shared library sources (PeanoTypes.swift, CayleyDickson.swift, ChurchNumerals.swift) directly, and main.swift adds convenience bindings and representative runtime assertions. Type-level arithmetic (NaturalExpression, Sum, Product) lives in the SPM client where macros are available.
 
 ### Testing conventions
 
