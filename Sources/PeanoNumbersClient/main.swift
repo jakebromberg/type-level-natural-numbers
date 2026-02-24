@@ -176,6 +176,47 @@ assert(gcd(Five, Three) == One)
 assert(gcd(Four, Six) == Two)
 assert(gcd(Six, Zero.self) == Six)
 
+// MARK: - Hyperoperations
+
+assert(hyperop(Zip, Two, Three) == Four)              // H(0, a, b) = S(b)
+assert(hyperop(One, Two, Three) == Five)               // H(1, a, b) = a + b
+assert(hyperop(Two, Two, Three) == Six)                // H(2, a, b) = a * b
+assert(hyperop(Three, Two, Three) == #Peano(8))        // H(3, a, b) = a ** b
+assert(hyperop(One, Zip, Zip) == Zip)                  // H(1, 0, 0) = 0
+assert(hyperop(Two, Three, Zip) == Zip)                // H(2, a, 0) = 0
+assert(hyperop(Three, Two, Zip) == One)                // H(3, a, 0) = 1
+
+// MARK: - Ackermann function
+
+assert(ackermann(Zip, Zip) == One)                     // A(0, 0) = 1
+assert(ackermann(Zip, Three) == Four)                  // A(0, n) = n + 1
+assert(ackermann(One, One) == Three)                   // A(1, 1) = 3
+assert(ackermann(Two, Two) == #Peano(7))               // A(2, 2) = 7
+assert(ackermann(Three, One) == #Peano(13))            // A(3, 1) = 13
+
+// MARK: - Church numerals
+
+let c0 = ChurchZero.self
+let c1 = ChurchSucc<ChurchZero>.self
+let c2 = ChurchSucc<ChurchSucc<ChurchZero>>.self
+let c3 = ChurchSucc<ChurchSucc<ChurchSucc<ChurchZero>>>.self
+
+assert(churchToInt(c0) == 0)
+assert(churchToInt(c1) == 1)
+assert(churchToInt(c2) == 2)
+assert(churchToInt(c3) == 3)
+
+// Church addition: 2 + 3 = 5
+assert(churchToInt(ChurchAdd<ChurchSucc<ChurchSucc<ChurchZero>>, ChurchSucc<ChurchSucc<ChurchSucc<ChurchZero>>>>.self) == 5)
+
+// Church multiplication: 2 * 3 = 6
+assert(churchToInt(ChurchMul<ChurchSucc<ChurchSucc<ChurchZero>>, ChurchSucc<ChurchSucc<ChurchSucc<ChurchZero>>>>.self) == 6)
+
+// Church macro
+assert(churchToInt(#Church(0)) == 0)
+assert(churchToInt(#Church(3)) == 3)
+assert(churchToInt(#Church(5)) == 5)
+
 // MARK: - Compile-time type equality assertions (verified at build time)
 
 assertEqual(#PeanoType(0), #Peano(0))
@@ -192,6 +233,8 @@ assertEqual(#PeanoType(6 % 4), #Peano(2))
 assertEqual(#PeanoType(factorial(4)), #Peano(24))
 assertEqual(#PeanoType(fibonacci(6)), #Peano(8))
 assertEqual(#PeanoType(gcd(6, 4)), #Peano(2))
+assertEqual(#PeanoType(hyperop(3, 2, 3)), #Peano(8))
+assertEqual(#PeanoType(ackermann(2, 2)), #Peano(7))
 
 // MARK: - Compile-time assertions (verified at macro expansion time)
 
@@ -214,3 +257,7 @@ assertEqual(#PeanoType(gcd(6, 4)), #Peano(2))
 #PeanoAssert(factorial(3) == 6)
 #PeanoAssert(fibonacci(6) == 8)
 #PeanoAssert(gcd(6, 4) == 2)
+#PeanoAssert(hyperop(3, 2, 3) == 8)
+#PeanoAssert(hyperop(1, 2, 3) == 5)
+#PeanoAssert(ackermann(2, 2) == 7)
+#PeanoAssert(ackermann(0, 3) == 4)

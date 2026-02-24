@@ -7,5 +7,6 @@ struct PeanoNumbersPlugin: CompilerPlugin {
         PeanoMacro.self,
         PeanoTypeMacro.self,
         PeanoAssertMacro.self,
+        ChurchMacro.self,
     ]
 }

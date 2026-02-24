@@ -349,3 +349,86 @@ assert(gcd(Six, Three) == Three)
 assert(gcd(Five, Three) == One)
 assert(gcd(Four, Six) == Two)
 assert(gcd(Six, Zero.self) == Six)
+
+// MARK: - Hyperoperation
+
+func hyperop(_ n: any Natural.Type, _ a: any Natural.Type, _ b: any Natural.Type) -> any Natural.Type {
+    if n == Zero.self { return b.successor }                                      // H(0, a, b) = S(b)
+    let nPred = n.predecessor as! any Natural.Type
+    if b == Zero.self {
+        if nPred == Zero.self { return a }                                        // H(1, a, 0) = a
+        if nPred == AddOne<Zero>.self { return Zero.self }                        // H(2, a, 0) = 0
+        return AddOne<Zero>.self                                                  // H(n>=3, a, 0) = 1
+    }
+    return hyperop(nPred, a, hyperop(n, a, b.predecessor as! any Natural.Type))  // H(S(n), a, S(b)) = H(n, a, H(S(n), a, b))
+}
+
+assert(hyperop(Zip, Two, Three) == Four)              // H(0, a, b) = S(b)
+assert(hyperop(One, Two, Three) == Five)               // H(1, a, b) = a + b
+assert(hyperop(Two, Two, Three) == Six)                // H(2, a, b) = a * b
+let Eight = Two ** Three
+assert(hyperop(Three, Two, Three) == Eight)            // H(3, a, b) = a ** b
+assert(hyperop(One, Zip, Zip) == Zip)                  // H(1, 0, 0) = 0
+assert(hyperop(Two, Three, Zip) == Zip)                // H(2, a, 0) = 0
+assert(hyperop(Three, Two, Zip) == One)                // H(3, a, 0) = 1
+
+// MARK: - Ackermann function
+
+func ackermann(_ m: any Natural.Type, _ n: any Natural.Type) -> any Natural.Type {
+    if m == Zero.self { return n.successor }                                      // A(0, n) = S(n)
+    let mPred = m.predecessor as! any Natural.Type
+    if n == Zero.self { return ackermann(mPred, AddOne<Zero>.self) }              // A(S(m), 0) = A(m, 1)
+    return ackermann(mPred, ackermann(m, n.predecessor as! any Natural.Type))    // A(S(m), S(n)) = A(m, A(S(m), n))
+}
+
+assert(ackermann(Zip, Zip) == One)                     // A(0, 0) = 1
+assert(ackermann(Zip, Three) == Four)                  // A(0, n) = n + 1
+assert(ackermann(One, One) == Three)                   // A(1, 1) = 3
+
+// MARK: - Church numerals
+
+protocol ChurchNumeral {
+    static func apply<T>(_ f: @escaping (T) -> T, to x: T) -> T
+}
+
+enum ChurchZero: ChurchNumeral {
+    static func apply<T>(_ f: @escaping (T) -> T, to x: T) -> T { x }
+}
+
+enum ChurchSucc<N: ChurchNumeral>: ChurchNumeral {
+    static func apply<T>(_ f: @escaping (T) -> T, to x: T) -> T {
+        f(N.apply(f, to: x))
+    }
+}
+
+enum ChurchAdd<A: ChurchNumeral, B: ChurchNumeral>: ChurchNumeral {
+    static func apply<T>(_ f: @escaping (T) -> T, to x: T) -> T {
+        A.apply(f, to: B.apply(f, to: x))
+    }
+}
+
+enum ChurchMul<A: ChurchNumeral, B: ChurchNumeral>: ChurchNumeral {
+    static func apply<T>(_ f: @escaping (T) -> T, to x: T) -> T {
+        A.apply({ B.apply(f, to: $0) }, to: x)
+    }
+}
+
+func churchToInt<N: ChurchNumeral>(_: N.Type) -> Int {
+    N.apply({ $0 + 1 }, to: 0)
+}
+
+let c0 = ChurchZero.self
+let c1 = ChurchSucc<ChurchZero>.self
+let c2 = ChurchSucc<ChurchSucc<ChurchZero>>.self
+let c3 = ChurchSucc<ChurchSucc<ChurchSucc<ChurchZero>>>.self
+
+assert(churchToInt(c0) == 0)
+assert(churchToInt(c1) == 1)
+assert(churchToInt(c2) == 2)
+assert(churchToInt(c3) == 3)
+
+// Church addition: 2 + 3 = 5
+assert(churchToInt(ChurchAdd<ChurchSucc<ChurchSucc<ChurchZero>>, ChurchSucc<ChurchSucc<ChurchSucc<ChurchZero>>>>.self) == 5)
+
+// Church multiplication: 2 * 3 = 6
+assert(churchToInt(ChurchMul<ChurchSucc<ChurchSucc<ChurchZero>>, ChurchSucc<ChurchSucc<ChurchSucc<ChurchZero>>>>.self) == 6)
