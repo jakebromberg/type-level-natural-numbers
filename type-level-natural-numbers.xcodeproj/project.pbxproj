@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		348EABE81DFF9A2800D1F820 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348EABE71DFF9A2800D1F820 /* main.swift */; };
+		A1B2C3D40001000000000003 /* PeanoTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40001000000000001 /* PeanoTypes.swift */; };
+		A1B2C3D40001000000000004 /* CayleyDickson.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40001000000000002 /* CayleyDickson.swift */; };
+		A1B2C3D40001000000000006 /* ChurchNumerals.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40001000000000005 /* ChurchNumerals.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +28,9 @@
 /* Begin PBXFileReference section */
 		348EABE41DFF9A2800D1F820 /* type-level-natural-numbers */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "type-level-natural-numbers"; sourceTree = BUILT_PRODUCTS_DIR; };
 		348EABE71DFF9A2800D1F820 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		A1B2C3D40001000000000001 /* PeanoTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeanoTypes.swift; sourceTree = "<group>"; };
+		A1B2C3D40001000000000002 /* CayleyDickson.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CayleyDickson.swift; sourceTree = "<group>"; };
+		A1B2C3D40001000000000005 /* ChurchNumerals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChurchNumerals.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +47,7 @@
 		348EABDB1DFF9A2800D1F820 = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D40001000000000007 /* Sources */,
 				348EABE61DFF9A2800D1F820 /* type-level-natural-numbers */,
 				348EABE51DFF9A2800D1F820 /* Products */,
 			);
@@ -60,6 +67,24 @@
 				348EABE71DFF9A2800D1F820 /* main.swift */,
 			);
 			path = "type-level-natural-numbers";
+			sourceTree = "<group>";
+		};
+		A1B2C3D40001000000000007 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D40001000000000008 /* PeanoNumbers */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A1B2C3D40001000000000008 /* PeanoNumbers */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D40001000000000001 /* PeanoTypes.swift */,
+				A1B2C3D40001000000000002 /* CayleyDickson.swift */,
+				A1B2C3D40001000000000005 /* ChurchNumerals.swift */,
+			);
+			path = PeanoNumbers;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -123,6 +148,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				348EABE81DFF9A2800D1F820 /* main.swift in Sources */,
+				A1B2C3D40001000000000003 /* PeanoTypes.swift in Sources */,
+				A1B2C3D40001000000000004 /* CayleyDickson.swift in Sources */,
+				A1B2C3D40001000000000006 /* ChurchNumerals.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
