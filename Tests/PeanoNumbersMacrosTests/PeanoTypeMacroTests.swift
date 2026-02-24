@@ -158,5 +158,59 @@ final class PeanoTypeMacroTests: XCTestCase {
         )
     }
 
+    func testHyperopSuccessor() throws {
+        // hyperop(0, 2, 3) = S(3) = 4
+        assertMacroExpansion(
+            "#PeanoType(hyperop(0, 2, 3))",
+            expandedSource: "AddOne<AddOne<AddOne<AddOne<Zero>>>>.self",
+            macros: peanoTypeMacros
+        )
+    }
+
+    func testHyperopAddition() throws {
+        // hyperop(1, 2, 3) = 2 + 3 = 5
+        assertMacroExpansion(
+            "#PeanoType(hyperop(1, 2, 3))",
+            expandedSource: "AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>.self",
+            macros: peanoTypeMacros
+        )
+    }
+
+    func testHyperopMultiplication() throws {
+        // hyperop(2, 2, 3) = 2 * 3 = 6
+        assertMacroExpansion(
+            "#PeanoType(hyperop(2, 2, 3))",
+            expandedSource: "AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>>.self",
+            macros: peanoTypeMacros
+        )
+    }
+
+    func testHyperopExponentiation() throws {
+        // hyperop(3, 2, 3) = 2 ** 3 = 8
+        assertMacroExpansion(
+            "#PeanoType(hyperop(3, 2, 3))",
+            expandedSource: "AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>>>>.self",
+            macros: peanoTypeMacros
+        )
+    }
+
+    func testAckermann() throws {
+        // ackermann(2, 2) = 7
+        assertMacroExpansion(
+            "#PeanoType(ackermann(2, 2))",
+            expandedSource: "AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<Zero>>>>>>>.self",
+            macros: peanoTypeMacros
+        )
+    }
+
+    func testAckermannBaseCase() throws {
+        // ackermann(0, 3) = 4
+        assertMacroExpansion(
+            "#PeanoType(ackermann(0, 3))",
+            expandedSource: "AddOne<AddOne<AddOne<AddOne<Zero>>>>.self",
+            macros: peanoTypeMacros
+        )
+    }
+
     #endif
 }

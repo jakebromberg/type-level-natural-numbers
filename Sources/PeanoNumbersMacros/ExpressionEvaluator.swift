@@ -8,6 +8,11 @@ func peanoTypeName(for n: Int) -> String {
     return String(repeating: "SubOne<", count: -n) + "Zero" + String(repeating: ">", count: -n)
 }
 
+func churchTypeName(for n: Int) -> String {
+    if n <= 0 { return "ChurchZero" }
+    return String(repeating: "ChurchSucc<", count: n) + "ChurchZero" + String(repeating: ">", count: n)
+}
+
 enum EvaluationError: Error {
     case unsupportedExpression(ExprSyntax)
     case unsupportedOperator(String)
@@ -40,10 +45,24 @@ private func factorialInt(_ n: Int) -> Int {
     (1...max(1, n)).reduce(1, *)
 }
 
+private func hyperopInt(_ n: Int, _ a: Int, _ b: Int) -> Int {
+    if n == 0 { return b + 1 }
+    if n == 1 && b == 0 { return a }
+    if n == 2 && b == 0 { return 0 }
+    if b == 0 { return 1 }
+    return hyperopInt(n - 1, a, hyperopInt(n, a, b - 1))
+}
+
+private func ackermannInt(_ m: Int, _ n: Int) -> Int {
+    if m == 0 { return n + 1 }
+    if n == 0 { return ackermannInt(m - 1, 1) }
+    return ackermannInt(m - 1, ackermannInt(m, n - 1))
+}
+
 /// Evaluates a SwiftSyntax arithmetic expression to an Int.
 ///
 /// Supports integer literals, prefix minus, binary operators (+, -, *, **, .-, /, %),
-/// function calls (negate, factorial, fibonacci, gcd), and parentheses.
+/// function calls (negate, factorial, fibonacci, gcd, hyperop, ackermann), and parentheses.
 /// The Swift compiler folds operator precedence before macro expansion, so
 /// `2 + 3 * 4` arrives already structured as `2 + (3 * 4)`.
 func evaluateExpression(_ expr: ExprSyntax) throws -> Int {
@@ -88,6 +107,8 @@ func evaluateExpression(_ expr: ExprSyntax) throws -> Int {
         case ("factorial", 1): return factorialInt(args[0])
         case ("fibonacci", 1): return fibonacciInt(args[0])
         case ("gcd", 2):       return gcdInt(args[0], args[1])
+        case ("hyperop", 3):   return hyperopInt(args[0], args[1], args[2])
+        case ("ackermann", 2): return ackermannInt(args[0], args[1])
         default: throw EvaluationError.unsupportedFunction(name)
         }
     }
