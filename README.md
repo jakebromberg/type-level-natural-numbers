@@ -408,4 +408,4 @@ swift test                   # run macro expansion tests
 
 ### Xcode
 
-Open `type-level-natural-numbers.xcodeproj` in Xcode and run the target. The Xcode project is self-contained and does not use the SPM macros.
+Open `type-level-natural-numbers.xcodeproj` in Xcode and run the target. The Xcode project shares library sources (`PeanoTypes.swift`, `CayleyDickson.swift`, `ChurchNumerals.swift`) with the SPM package but does not use SPM resolution or macros. The `main.swift` entry point contains Xcode-exclusive type-level arithmetic (`NaturalExpression`, `Sum`, `Product`) and representative runtime assertions.
