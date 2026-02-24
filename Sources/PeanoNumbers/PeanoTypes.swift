@@ -38,6 +38,9 @@ public enum AddOne<Predecessor: Natural>: Natural {
     public static var successor: AddOne<Self>.Type { AddOne<Self>.self }
 }
 
+/// The Peano representation of 1, used as a base-case constant in operator definitions.
+nonisolated(unsafe) let one: any Natural.Type = AddOne<Zero>.self
+
 // MARK: - Natural addition (right-hand recursion)
 
 public func +(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type {
@@ -156,14 +159,14 @@ public func **(base: Int, exp: Int) -> Int {
 
 /// Natural exponentiation: `a ** 0 = 1`, `a ** S(b) = a ** b * a`.
 public func **(base: any Natural.Type, exp: any Natural.Type) -> any Natural.Type {
-    if exp == Zero.self { return AddOne<Zero>.self }                     // a ** 0 = 1
+    if exp == Zero.self { return one }                                   // a ** 0 = 1
     return (base ** (exp.predecessor as! any Natural.Type)) * base      // a ** S(b) = a**b * a
 }
 
 /// Integer exponentiation with natural exponent.
 /// Negative base with natural exponent (e.g. `(-2) ** 3 = -8`).
 public func **(base: any Integer.Type, exp: any Natural.Type) -> any Integer.Type {
-    if exp == Zero.self { return AddOne<Zero>.self }                     // a ** 0 = 1
+    if exp == Zero.self { return one }                                   // a ** 0 = 1
     return (base ** (exp.predecessor as! any Natural.Type)) * base      // a ** S(b) = a**b * a
 }
 
@@ -192,7 +195,7 @@ public func .-(lhs: any Natural.Type, rhs: any Natural.Type) -> any Natural.Type
 public func divmod(_ a: any Natural.Type, _ b: any Natural.Type) -> (any Natural.Type, any Natural.Type) {
     if a < b { return (Zero.self, a) }
     let (q, r) = divmod(a .- b, b)
-    return (q + AddOne<Zero>.self, r)
+    return (q + one, r)
 }
 
 /// Natural division (truncated). Precondition: `rhs != 0`.
@@ -214,7 +217,7 @@ public func factorial(_ n: Int) -> Int {
 
 /// Factorial: `fact(0) = 1`, `fact(S(n)) = S(n) * fact(n)`.
 public func factorial(_ n: any Natural.Type) -> any Natural.Type {
-    if n == Zero.self { return AddOne<Zero>.self }
+    if n == Zero.self { return one }
     return n * factorial(n.predecessor as! any Natural.Type)
 }
 
@@ -234,7 +237,7 @@ public func fibonacci(_ n: any Natural.Type) -> any Natural.Type {
         if n == Zero.self { return a }
         return helper(n.predecessor as! any Natural.Type, b, a + b)
     }
-    return helper(n, Zero.self, AddOne<Zero>.self)
+    return helper(n, Zero.self, one)
 }
 
 // MARK: - GCD
@@ -282,8 +285,8 @@ public func hyperop(_ n: any Natural.Type, _ a: any Natural.Type, _ b: any Natur
     let nPred = n.predecessor as! any Natural.Type
     if b == Zero.self {
         if nPred == Zero.self { return a }                                        // H(1, a, 0) = a
-        if nPred == AddOne<Zero>.self { return Zero.self }                        // H(2, a, 0) = 0
-        return AddOne<Zero>.self                                                  // H(n>=3, a, 0) = 1
+        if nPred == one { return Zero.self }                                      // H(2, a, 0) = 0
+        return one                                                                // H(n>=3, a, 0) = 1
     }
     return hyperop(nPred, a, hyperop(n, a, b.predecessor as! any Natural.Type))  // H(S(n), a, S(b)) = H(n, a, H(S(n), a, b))
 }
@@ -307,7 +310,7 @@ public func ackermann(_ m: Int, _ n: Int) -> Int {
 public func ackermann(_ m: any Natural.Type, _ n: any Natural.Type) -> any Natural.Type {
     if m == Zero.self { return n.successor }                                      // A(0, n) = S(n)
     let mPred = m.predecessor as! any Natural.Type
-    if n == Zero.self { return ackermann(mPred, AddOne<Zero>.self) }              // A(S(m), 0) = A(m, 1)
+    if n == Zero.self { return ackermann(mPred, one) }                            // A(S(m), 0) = A(m, 1)
     return ackermann(mPred, ackermann(m, n.predecessor as! any Natural.Type))    // A(S(m), S(n)) = A(m, A(S(m), n))
 }
 
