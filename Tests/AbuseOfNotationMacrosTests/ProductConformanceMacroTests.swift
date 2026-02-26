@@ -2,8 +2,8 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
 
-#if canImport(PeanoNumbersMacros)
-import PeanoNumbersMacros
+#if canImport(AbuseOfNotationMacros)
+import AbuseOfNotationMacros
 
 nonisolated(unsafe) let productConformanceMacros: [String: Macro.Type] = [
     "ProductConformance": ProductConformanceMacro.self,
@@ -11,7 +11,7 @@ nonisolated(unsafe) let productConformanceMacros: [String: Macro.Type] = [
 #endif
 
 final class ProductConformanceMacroTests: XCTestCase {
-    #if canImport(PeanoNumbersMacros)
+    #if canImport(AbuseOfNotationMacros)
 
     func testTimesTwo() throws {
         assertMacroExpansion(

@@ -5,32 +5,32 @@ A Swift project that encodes the natural numbers as types using the Peano axioms
 ## Project structure
 
 ```
-Package.swift                            -- SPM package definition
+Package.swift                                -- SPM package definition
 Sources/
-  PeanoNumbers/                          -- library: types, witnesses, type-level arithmetic
-    PeanoTypes.swift                     -- protocols (Integer, Natural, Nonpositive), Zero, AddOne, SubOne, assertEqual
-    Witnesses.swift                      -- witness protocols and constructors (NaturalSum, NaturalProduct, NaturalLessThan)
-    TypeLevelArithmetic.swift            -- NaturalExpression, type aliases (N0-N9), Sum, Product, _TimesNk protocols
-    ChurchNumerals.swift                 -- Church numeral encoding (ChurchNumeral, ChurchZero, ChurchSucc, ChurchAdd, ChurchMul)
-    CayleyDickson.swift                  -- Cayley-Dickson construction (Algebra marker protocol, CayleyDickson type)
-    Macros.swift                         -- @ProductConformance macro declaration
-  PeanoNumbersMacros/                    -- .macro target: compiler plugin
-    Plugin.swift                         -- CompilerPlugin entry point
-    ProductConformanceMacro.swift        -- @ProductConformance(n) implementation (peer macro for inductive multiplication)
-    Diagnostics.swift                    -- PeanoDiagnostic enum
-  PeanoNumbersClient/                    -- SPM executable: witness-based proofs
-    main.swift                           -- witness constructions verified by compilation, type-level arithmetic assertions
+  AbuseOfNotation/                           -- library: types, witnesses, type-level arithmetic
+    PeanoTypes.swift                         -- protocols (Integer, Natural, Nonpositive), Zero, AddOne, SubOne, assertEqual
+    Witnesses.swift                          -- witness protocols and constructors (NaturalSum, NaturalProduct, NaturalLessThan)
+    TypeLevelArithmetic.swift                -- NaturalExpression, type aliases (N0-N9), Sum, Product, _TimesNk protocols
+    ChurchNumerals.swift                     -- Church numeral encoding (ChurchNumeral, ChurchZero, ChurchSucc, ChurchAdd, ChurchMul)
+    CayleyDickson.swift                      -- Cayley-Dickson construction (Algebra marker protocol, CayleyDickson type)
+    Macros.swift                             -- @ProductConformance macro declaration
+  AbuseOfNotationMacros/                     -- .macro target: compiler plugin
+    Plugin.swift                             -- CompilerPlugin entry point
+    ProductConformanceMacro.swift            -- @ProductConformance(n) implementation (peer macro for inductive multiplication)
+    Diagnostics.swift                        -- PeanoDiagnostic enum
+  AbuseOfNotationClient/                     -- SPM executable: witness-based proofs
+    main.swift                               -- witness constructions verified by compilation, type-level arithmetic assertions
 Tests/
-  PeanoNumbersMacrosTests/               -- macro expansion tests
+  AbuseOfNotationMacrosTests/                -- macro expansion tests
     ProductConformanceMacroTests.swift
 ```
 
 ## Building and testing
 
 ```sh
-swift build                  # compile (compilation = proof)
-swift run PeanoNumbersClient # exits cleanly (no runtime computation)
-swift test                   # run macro expansion tests
+swift build                      # compile (compilation = proof)
+swift run AbuseOfNotationClient  # exits cleanly (no runtime computation)
+swift test                       # run macro expansion tests
 ```
 
 ### Testing conventions
@@ -38,7 +38,7 @@ swift test                   # run macro expansion tests
 - Arithmetic correctness is verified by witness construction: if the types compile, the proof is valid.
 - `assertEqual<T: Integer>(_: T.Type, _: T.Type)` asserts type equality at compile time (empty body -- compilation is the assertion).
 - Macro expansion correctness is verified by `assertMacroExpansion` in `swift test`.
-- A clean `swift build && swift run PeanoNumbersClient && swift test` means all checks pass.
+- A clean `swift build && swift run AbuseOfNotationClient && swift test` means all checks pass.
 
 ## Code conventions
 

@@ -1,4 +1,4 @@
-import PeanoNumbers
+import AbuseOfNotation
 
 // MARK: - Addition proofs
 

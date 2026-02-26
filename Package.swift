@@ -3,25 +3,25 @@ import PackageDescription
 import CompilerPluginSupport
 
 let package = Package(
-    name: "PeanoNumbers",
+    name: "AbuseOfNotation",
     platforms: [.macOS(.v10_15)],
     products: [
-        .library(name: "PeanoNumbers", targets: ["PeanoNumbers"]),
-        .executable(name: "PeanoNumbersClient", targets: ["PeanoNumbersClient"]),
+        .library(name: "AbuseOfNotation", targets: ["AbuseOfNotation"]),
+        .executable(name: "AbuseOfNotationClient", targets: ["AbuseOfNotationClient"]),
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0"),
     ],
     targets: [
-        .macro(name: "PeanoNumbersMacros", dependencies: [
+        .macro(name: "AbuseOfNotationMacros", dependencies: [
             .product(name: "SwiftDiagnostics", package: "swift-syntax"),
             .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
             .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
         ]),
-        .target(name: "PeanoNumbers", dependencies: ["PeanoNumbersMacros"]),
-        .executableTarget(name: "PeanoNumbersClient", dependencies: ["PeanoNumbers"]),
-        .testTarget(name: "PeanoNumbersMacrosTests", dependencies: [
-            "PeanoNumbersMacros",
+        .target(name: "AbuseOfNotation", dependencies: ["AbuseOfNotationMacros"]),
+        .executableTarget(name: "AbuseOfNotationClient", dependencies: ["AbuseOfNotation"]),
+        .testTarget(name: "AbuseOfNotationMacrosTests", dependencies: [
+            "AbuseOfNotationMacros",
             .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
         ]),
     ]

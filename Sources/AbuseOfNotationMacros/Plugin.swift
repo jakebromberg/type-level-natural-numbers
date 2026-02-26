@@ -2,7 +2,7 @@ import SwiftCompilerPlugin
 import SwiftSyntaxMacros
 
 @main
-struct PeanoNumbersPlugin: CompilerPlugin {
+struct AbuseOfNotationPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         ProductConformanceMacro.self,
     ]

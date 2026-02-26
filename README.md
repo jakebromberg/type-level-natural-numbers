@@ -1,4 +1,4 @@
-# type-level-natural-numbers
+# Abuse of Notation
 
 Encoding the natural numbers as Swift types using the Peano axioms, with witness-based proofs that verify arithmetic facts at compile time. A successful `swift build` is the proof.
 
@@ -120,7 +120,7 @@ Integer types (`Zero`, `AddOne`, `SubOne`) conform to the `Algebra` marker proto
 ## Building
 
 ```sh
-swift build                  # compile (compilation = proof)
-swift run PeanoNumbersClient # exits cleanly
-swift test                   # run macro expansion tests
+swift build                      # compile (compilation = proof)
+swift run AbuseOfNotationClient  # exits cleanly
+swift test                       # run macro expansion tests
 ```
