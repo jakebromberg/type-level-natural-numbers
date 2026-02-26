@@ -42,10 +42,3 @@ public enum ChurchMul<A: ChurchNumeral, B: ChurchNumeral>: ChurchNumeral {
         A.apply({ B.apply(f, to: $0) }, to: x)
     }
 }
-
-// MARK: - Church conversion
-
-/// Converts a Church numeral type to its integer value by applying `{ $0 + 1 }` to `0`.
-public func churchToInt<N: ChurchNumeral>(_: N.Type) -> Int {
-    N.apply({ $0 + 1 }, to: 0)
-}

@@ -10,8 +10,5 @@ public macro PeanoAssert(_ expr: Any) = #externalMacro(module: "PeanoNumbersMacr
 @freestanding(expression)
 public macro Church(_ value: Int) -> any ChurchNumeral.Type = #externalMacro(module: "PeanoNumbersMacros", type: "ChurchMacro")
 
-@freestanding(expression)
-public macro Gaussian(_ re: Any, _ im: Any) -> AlgebraValue = #externalMacro(module: "PeanoNumbersMacros", type: "GaussianMacro")
-
 @attached(peer, names: arbitrary)
 public macro ProductConformance(_ multiplier: Int) = #externalMacro(module: "PeanoNumbersMacros", type: "ProductConformanceMacro")
