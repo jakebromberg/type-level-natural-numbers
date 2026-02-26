@@ -117,6 +117,23 @@ The Cayley-Dickson construction builds higher-dimensional algebras from pairs. T
 
 Integer types (`Zero`, `AddOne`, `SubOne`) conform to the `Algebra` marker protocol as level-0 scalars.
 
+## Continued fractions and pi
+
+Two classical formulas approximate pi from opposite directions:
+
+- **Brouncker's continued fraction** for 4/pi: `1 + 1/(2 + 9/(2 + 25/(2 + ...)))`
+- **Leibniz series** for pi/4: `1 - 1/3 + 1/5 - 1/7 + ...`
+
+At every depth n, the CF convergent h_n/k_n equals 1/S_{n+1}, where S_{n+1} is the (n+1)-th Leibniz partial sum. The type-level proof constructs both sequences independently using `GCFConvergent` (CF convergents via the standard recurrence) and `LeibnizPartialSum` (alternating series via fraction arithmetic), then uses `assertEqual` to verify the correspondence:
+
+```swift
+// CF convergent h_2/k_2 = 15/13 is the reciprocal of Leibniz S_3 = 13/15
+assertEqual(Brouncker2.P.self, Leibniz3.Q.self)  // 15 = 15
+assertEqual(Brouncker2.Q.self, Leibniz3.P.self)  // 13 = 13
+```
+
+Since both sequences converge and their values agree at every depth, they converge to the same limit. The compilation itself is the proof.
+
 ## Building
 
 ```sh

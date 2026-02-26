@@ -36,6 +36,24 @@ extension Sum where L == N2 {
 extension Sum where L == N3 {
     public typealias Result = AddOne<AddOne<AddOne<R>>>
 }
+extension Sum where L == N4 {
+    public typealias Result = AddOne<AddOne<AddOne<AddOne<R>>>>
+}
+extension Sum where L == N5 {
+    public typealias Result = AddOne<AddOne<AddOne<AddOne<AddOne<R>>>>>
+}
+extension Sum where L == N6 {
+    public typealias Result = AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<R>>>>>>
+}
+extension Sum where L == N7 {
+    public typealias Result = AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<R>>>>>>>
+}
+extension Sum where L == N8 {
+    public typealias Result = AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<R>>>>>>>>
+}
+extension Sum where L == N9 {
+    public typealias Result = AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<R>>>>>>>>>
+}
 
 // MARK: - Product
 
@@ -64,6 +82,26 @@ extension AddOne: _TimesN3 where Predecessor: _TimesN3 {
     public typealias _TimesN3Result = AddOne<AddOne<AddOne<Predecessor._TimesN3Result>>>
 }
 
+public protocol _TimesN5: Natural {
+    associatedtype _TimesN5Result: Natural
+}
+extension Zero: _TimesN5 {
+    public typealias _TimesN5Result = Zero
+}
+extension AddOne: _TimesN5 where Predecessor: _TimesN5 {
+    public typealias _TimesN5Result = AddOne<AddOne<AddOne<AddOne<AddOne<Predecessor._TimesN5Result>>>>>
+}
+
+public protocol _TimesN7: Natural {
+    associatedtype _TimesN7Result: Natural
+}
+extension Zero: _TimesN7 {
+    public typealias _TimesN7Result = Zero
+}
+extension AddOne: _TimesN7 where Predecessor: _TimesN7 {
+    public typealias _TimesN7Result = AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<AddOne<Predecessor._TimesN7Result>>>>>>>
+}
+
 /// Type-level multiplication: `Product<L, R>.Result` is the product of `L` and `R`.
 ///
 /// Defined by constrained extensions using inductive `_TimesNk` protocols.
@@ -81,3 +119,18 @@ extension Product where L == N2, R: _TimesN2 {
 extension Product where L == N3, R: _TimesN3 {
     public typealias Result = R._TimesN3Result
 }
+
+// MARK: - Extended type aliases
+
+public typealias N10 = AddOne<N9>
+public typealias N13 = AddOne<AddOne<AddOne<N10>>>
+public typealias N15 = N5._TimesN3Result
+public typealias N25 = N5._TimesN5Result
+public typealias N26 = AddOne<N25>
+public typealias N30 = N15._TimesN2Result
+public typealias N35 = N7._TimesN5Result
+public typealias N50 = N25._TimesN2Result
+public typealias N75 = N25._TimesN3Result
+public typealias N76 = AddOne<N75>
+public typealias N91 = N13._TimesN7Result
+public typealias N105 = N35._TimesN3Result

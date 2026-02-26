@@ -10,9 +10,10 @@ Sources/
   AbuseOfNotation/                           -- library: types, witnesses, type-level arithmetic
     PeanoTypes.swift                         -- protocols (Integer, Natural, Nonpositive), Zero, AddOne, SubOne, assertEqual
     Witnesses.swift                          -- witness protocols and constructors (NaturalSum, NaturalProduct, NaturalLessThan)
-    TypeLevelArithmetic.swift                -- NaturalExpression, type aliases (N0-N9), Sum, Product, _TimesNk protocols
+    TypeLevelArithmetic.swift                -- NaturalExpression, type aliases (N0-N105), Sum, Product, _TimesNk protocols
     ChurchNumerals.swift                     -- Church numeral encoding (ChurchNumeral, ChurchZero, ChurchSucc, ChurchAdd, ChurchMul)
     CayleyDickson.swift                      -- Cayley-Dickson construction (Algebra marker protocol, CayleyDickson type)
+    ContinuedFractions.swift                 -- Fraction, GCFConvergent (CF convergents), LeibnizPartialSum (Leibniz series)
     Macros.swift                             -- @ProductConformance macro declaration
   AbuseOfNotationMacros/                     -- .macro target: compiler plugin
     Plugin.swift                             -- CompilerPlugin entry point
