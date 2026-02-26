@@ -1,64 +1,42 @@
 # Project overview
 
-A Swift project that encodes the integers as types using the Peano axioms and implements arithmetic and comparison via existential metatypes, with Swift macros for compile-time arithmetic.
+A Swift project that encodes the natural numbers as types using the Peano axioms. Arithmetic facts are proved by constructing witness types whose existence demonstrates the relationship. Compilation is the proof.
 
 ## Project structure
 
-The project has both an Xcode command-line tool and an SPM package:
-
 ```
 Package.swift                            -- SPM package definition
-type-level-natural-numbers.xcodeproj     -- Xcode project (standalone, does not use SPM)
-type-level-natural-numbers/main.swift    -- Xcode target entry point (convenience bindings, representative runtime assertions)
 Sources/
-  PeanoNumbers/                          -- library: types, operators, macro declarations
-    PeanoTypes.swift                     -- protocols, Zero, AddOne, SubOne, operators, assertEqual
+  PeanoNumbers/                          -- library: types, witnesses, type-level arithmetic
+    PeanoTypes.swift                     -- protocols (Integer, Natural, Nonpositive), Zero, AddOne, SubOne, assertEqual
+    Witnesses.swift                      -- witness protocols and constructors (NaturalSum, NaturalProduct, NaturalLessThan)
+    TypeLevelArithmetic.swift            -- NaturalExpression, type aliases (N0-N9), Sum, Product, _TimesNk protocols
     ChurchNumerals.swift                 -- Church numeral encoding (ChurchNumeral, ChurchZero, ChurchSucc, ChurchAdd, ChurchMul)
-    CayleyDickson.swift                  -- Cayley-Dickson construction (Algebra, AlgebraValue, CayleyDickson, gaussian, quaternion, sign-parameterized multiply/norm)
-    Macros.swift                         -- macro declarations (#Peano, #PeanoType, #PeanoAssert, #Church, #Gaussian, @ProductConformance)
+    CayleyDickson.swift                  -- Cayley-Dickson construction (Algebra marker protocol, CayleyDickson type)
+    Macros.swift                         -- @ProductConformance macro declaration
   PeanoNumbersMacros/                    -- .macro target: compiler plugin
     Plugin.swift                         -- CompilerPlugin entry point
-    PeanoMacro.swift                     -- #Peano(n) implementation
-    PeanoTypeMacro.swift                 -- #PeanoType(expr) implementation
-    PeanoAssertMacro.swift               -- #PeanoAssert(expr) implementation
-    ChurchMacro.swift                    -- #Church(n) implementation
-    GaussianMacro.swift                  -- #Gaussian(re, im) implementation
     ProductConformanceMacro.swift        -- @ProductConformance(n) implementation (peer macro for inductive multiplication)
-    ExpressionEvaluator.swift            -- shared arithmetic/algebra evaluator (EvalValue, evaluateAlgebraExpression)
-    Diagnostics.swift                    -- PeanoDiagnostic enum, SimpleDiagnosticMessage
-  PeanoNumbersClient/                    -- SPM executable: exercises everything
-    main.swift                           -- convenience bindings, runtime + compile-time assertions, type-level arithmetic (Sum, Product)
+    Diagnostics.swift                    -- PeanoDiagnostic enum
+  PeanoNumbersClient/                    -- SPM executable: witness-based proofs
+    main.swift                           -- witness constructions verified by compilation, type-level arithmetic assertions
 Tests/
   PeanoNumbersMacrosTests/               -- macro expansion tests
-    PeanoMacroTests.swift
-    PeanoTypeMacroTests.swift
-    PeanoAssertMacroTests.swift
-    ChurchMacroTests.swift
-    GaussianMacroTests.swift
     ProductConformanceMacroTests.swift
 ```
 
 ## Building and testing
 
-### SPM (primary)
-
 ```sh
-swift build                  # compile everything (compile-time assertions verified here)
-swift run PeanoNumbersClient # run all runtime assertions
+swift build                  # compile (compilation = proof)
+swift run PeanoNumbersClient # exits cleanly (no runtime computation)
 swift test                   # run macro expansion tests
 ```
 
-### Xcode (standalone)
-
-```sh
-xcodebuild -project type-level-natural-numbers.xcodeproj -scheme type-level-natural-numbers -configuration Debug build
-```
-
-The Xcode target is self-contained -- it does not depend on the SPM package. It compiles the shared library sources (PeanoTypes.swift, CayleyDickson.swift, ChurchNumerals.swift) directly, and main.swift adds convenience bindings and representative runtime assertions. Type-level arithmetic (NaturalExpression, Sum, Product) lives in the SPM client where macros are available.
-
 ### Testing conventions
 
-- Runtime correctness is verified by `assert` statements in the executable targets.
+- Arithmetic correctness is verified by witness construction: if the types compile, the proof is valid.
+- `assertEqual<T: Integer>(_: T.Type, _: T.Type)` asserts type equality at compile time (empty body -- compilation is the assertion).
 - Macro expansion correctness is verified by `assertMacroExpansion` in `swift test`.
 - A clean `swift build && swift run PeanoNumbersClient && swift test` means all checks pass.
 
@@ -66,21 +44,15 @@ The Xcode target is self-contained -- it does not depend on the SPM package. It 
 
 - Integers are represented as types (`Zero`, `AddOne<N>`, `SubOne<N>`) conforming to protocols in the `Integer` hierarchy.
 - The protocol hierarchy has 3 protocols: `Integer` (root) -> `Natural` and `Nonpositive`. `Zero` conforms to both `Natural` and `Nonpositive`.
-- Runtime values are existential metatypes (`any Integer.Type`, `any Natural.Type`, `any Nonpositive.Type`).
-- Operator overloads use the tightest return type available (e.g. `Natural + Natural -> Natural`, `Integer + Integer -> Integer`).
-- All operators use right-hand recursion (standard Peano form): base case when `rhs == Zero`, inductive step peels the successor off the right operand.
-- Zero is detected by `== Zero.self` comparison. Non-zero naturals are detected by `as? any Natural.Type` cast after excluding zero.
-- Assertions serve as inline tests and are grouped immediately after the code they exercise.
+- Type aliases `N0` through `N9` provide convenient shorthand for small naturals.
+- Witness protocols (`NaturalSum`, `NaturalProduct`, `NaturalLessThan`) encode arithmetic relationships as associated type constraints.
+- Witness constructors follow Peano axioms: base case (e.g. `PlusZero<N>` for `N + 0 = N`) and inductive step (e.g. `PlusSucc<Proof>` for `A + S(B) = S(C)` given `A + B = C`).
+- `TimesSucc` composes a product witness with a sum witness via `where` constraints, encoding `a * S(b) = a*b + a`.
+- Type-level `Sum` and `Product` use constrained extensions for small left operands.
+- The `@ProductConformance(n)` macro generates inductive protocols and conformances for `Product`.
 
 ## Branching
 
-- `master` -- runtime arithmetic (addition, multiplication, comparison).
-- `worktree-type-level-arithmetic` -- extends master with compile-time type-level arithmetic (`Sum`, `Product`, `NaturalExpression`, `assertEqual`).
-- `worktree-integer-extension` -- extends master with negative numbers via `SubOne`, negation, subtraction, and integer-level arithmetic.
-- `worktree-macros` -- extends integer-extension with Swift macros (`#Peano`, `#PeanoType`, `#PeanoAssert`) for compile-time arithmetic.
-- `worktree-simplify-protocols` -- extends macros: simplifies to 3 protocols, switches to right-hand recursion, adds `<=`/`>=`.
-- `worktree-arithmetic-extensions` -- extends simplify-protocols: adds exponentiation, monus, division/modulo, factorial, fibonacci, GCD; extends macro evaluator.
-- `worktree-advanced-extensions` -- extends arithmetic-extensions: adds hyperoperation, Ackermann function, Church numeral encoding with `#Church` macro.
-- `worktree-cayley-dickson` -- extends advanced-extensions: adds Cayley-Dickson construction (Algebra protocol, AlgebraValue, CayleyDickson type, Gaussian integers, quaternions).
-- `worktree-cayley-dickson-macros` -- extends cayley-dickson: adds `#Gaussian` macro, sign-parameterized multiplication/norm (split-complex, dual numbers), and Cayley-Dickson evaluator for `#PeanoAssert`.
-- `worktree-cleanup-refactoring` -- extends master: consolidates evaluator code, adds library-level `one` constant, relocates diagnostic type, deduplicates Xcode target.
+- `master` -- witness-based proofs, type-level arithmetic, structural type definitions.
+- `witness-based-proofs` -- PR 1: paradigm shift from runtime computation to witness-based proofs.
+- `macro-cleanup` -- PR 2: removes computational macros, Xcode target, updates docs.
