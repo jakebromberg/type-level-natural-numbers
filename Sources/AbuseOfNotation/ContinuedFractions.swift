@@ -1,0 +1,120 @@
+// MARK: - Type-level fraction
+
+/// Type-level rational number: Numerator / Denominator.
+/// Purely structural -- encodes the pair without computing.
+public enum Fraction<Numerator: Natural, Denominator: Natural> {}
+
+// MARK: - Generalized continued fraction convergent
+
+/// State of a generalized continued fraction convergent at depth n.
+/// P/Q is the current convergent h_n/k_n; PrevP/PrevQ is h_{n-1}/k_{n-1}.
+///
+/// The recurrence for the standard continued fraction:
+///   h_n = b_n * h_{n-1} + a_n * h_{n-2}
+///   k_n = b_n * k_{n-1} + a_n * k_{n-2}
+public protocol GCFConvergent {
+    associatedtype P: Natural      // h_n (numerator)
+    associatedtype Q: Natural      // k_n (denominator)
+    associatedtype PrevP: Natural  // h_{n-1}
+    associatedtype PrevQ: Natural  // k_{n-1}
+}
+
+/// Base convergent (depth 0): h_0 = b_0, k_0 = 1, with h_{-1} = 1, k_{-1} = 0.
+public struct GCFConv0<B0: Natural>: GCFConvergent {
+    public typealias P = B0
+    public typealias Q = AddOne<Zero>
+    public typealias PrevP = AddOne<Zero>
+    public typealias PrevQ = Zero
+}
+
+/// Step convergent: h_n = b * h_{n-1} + a * h_{n-2}, k_n = b * k_{n-1} + a * k_{n-2}.
+///
+/// Takes the previous convergent plus witnesses for the six arithmetic operations:
+///   BTimesP:    b * h_{n-1}
+///   ATimesPrevP: a * h_{n-2}
+///   PResult:    b*h_{n-1} + a*h_{n-2} = h_n
+///   BTimesQ:    b * k_{n-1}
+///   ATimesPrevQ: a * k_{n-2}
+///   QResult:    b*k_{n-1} + a*k_{n-2} = k_n
+public struct GCFConvStep<
+    Prev: GCFConvergent,
+    BTimesP: NaturalProduct,
+    ATimesPrevP: NaturalProduct,
+    PResult: NaturalSum,
+    BTimesQ: NaturalProduct,
+    ATimesPrevQ: NaturalProduct,
+    QResult: NaturalSum
+>: GCFConvergent
+where
+    BTimesP.Right == Prev.P,
+    ATimesPrevP.Right == Prev.PrevP,
+    PResult.Left == BTimesP.Total, PResult.Right == ATimesPrevP.Total,
+    BTimesQ.Right == Prev.Q,
+    ATimesPrevQ.Right == Prev.PrevQ,
+    QResult.Left == BTimesQ.Total, QResult.Right == ATimesPrevQ.Total,
+    BTimesP.Left == BTimesQ.Left,         // same b
+    ATimesPrevP.Left == ATimesPrevQ.Left  // same a
+{
+    public typealias P = PResult.Total
+    public typealias Q = QResult.Total
+    public typealias PrevP = Prev.P
+    public typealias PrevQ = Prev.Q
+}
+
+// MARK: - Leibniz series partial sum
+
+/// State of the Leibniz series pi/4 = 1 - 1/3 + 1/5 - ... after n terms.
+/// P/Q is the partial sum as a fraction.
+public protocol LeibnizPartialSum {
+    associatedtype P: Natural  // numerator
+    associatedtype Q: Natural  // denominator
+}
+
+/// S_1 = 1/1 (the first term of the Leibniz series).
+public struct LeibnizBase: LeibnizPartialSum {
+    public typealias P = AddOne<Zero>
+    public typealias Q = AddOne<Zero>
+}
+
+/// Subtraction step: if prev = p/q, then this computes (p*d - q) / (q*d)
+/// where d is the next odd denominator. Subtraction is witnessed by a
+/// NaturalSum proving that Result + q = p*d (i.e. p*d - q = Result).
+///
+/// Used for the minus terms in the alternating Leibniz series.
+public struct LeibnizSub<
+    Prev: LeibnizPartialSum,
+    PTimesD: NaturalProduct,
+    QTimesD: NaturalProduct,
+    SubWitness: NaturalSum
+>: LeibnizPartialSum
+where
+    PTimesD.Left == Prev.P,
+    QTimesD.Left == Prev.Q,
+    PTimesD.Right == QTimesD.Right,        // same d
+    SubWitness.Total == PTimesD.Total,     // result + q = p*d
+    SubWitness.Right == Prev.Q             // subtracting q
+{
+    public typealias P = SubWitness.Left   // p*d - q
+    public typealias Q = QTimesD.Total     // q*d
+}
+
+/// Addition step: if prev = p/q, then this computes (p*d + q) / (q*d)
+/// where d is the next odd denominator. Addition is witnessed by a NaturalSum.
+///
+/// Used for the plus terms in the alternating Leibniz series.
+public struct LeibnizAdd<
+    Prev: LeibnizPartialSum,
+    PTimesD: NaturalProduct,
+    QTimesD: NaturalProduct,
+    AddWitness: NaturalSum
+>: LeibnizPartialSum
+where
+    PTimesD.Left == Prev.P,
+    QTimesD.Left == Prev.Q,
+    PTimesD.Right == QTimesD.Right,        // same d
+    AddWitness.Left == PTimesD.Total,      // p*d + q
+    AddWitness.Right == Prev.Q
+{
+    public typealias P = AddWitness.Total  // p*d + q
+    public typealias Q = QTimesD.Total     // q*d
+}
