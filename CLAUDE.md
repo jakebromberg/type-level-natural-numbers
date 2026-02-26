@@ -14,16 +14,22 @@ Sources/
     ChurchNumerals.swift                     -- Church numeral encoding (ChurchNumeral, ChurchZero, ChurchSucc, ChurchAdd, ChurchMul)
     CayleyDickson.swift                      -- Cayley-Dickson construction (Algebra marker protocol, CayleyDickson type)
     ContinuedFractions.swift                 -- Fraction, GCFConvergent (CF convergents), LeibnizPartialSum (Leibniz series)
-    Macros.swift                             -- @ProductConformance macro declaration
+    Fibonacci.swift                          -- FibState, FibVerified, Fib0, FibStep (Fibonacci recurrence witnesses)
+    Macros.swift                             -- macro declarations (@ProductConformance, @FibonacciProof, @PiConvergenceProof)
   AbuseOfNotationMacros/                     -- .macro target: compiler plugin
     Plugin.swift                             -- CompilerPlugin entry point
-    ProductConformanceMacro.swift            -- @ProductConformance(n) implementation (peer macro for inductive multiplication)
+    ProductConformanceMacro.swift            -- @ProductConformance(n) (peer macro for inductive multiplication)
+    FibonacciProofMacro.swift                -- @FibonacciProof(upTo:) (member macro generating Fibonacci witness chains)
+    PiConvergenceProofMacro.swift            -- @PiConvergenceProof(depth:) (member macro generating Brouncker-Leibniz proof)
     Diagnostics.swift                        -- PeanoDiagnostic enum
   AbuseOfNotationClient/                     -- SPM executable: witness-based proofs
     main.swift                               -- witness constructions verified by compilation, type-level arithmetic assertions
+    Experiment.swift                         -- Seed<A>, _InductiveAdd, _Rebase experiments
 Tests/
   AbuseOfNotationMacrosTests/                -- macro expansion tests
     ProductConformanceMacroTests.swift
+    FibonacciProofMacroTests.swift
+    PiConvergenceProofMacroTests.swift
 ```
 
 ## Building and testing
@@ -51,6 +57,10 @@ swift test                       # run macro expansion tests
 - `TimesSucc` composes a product witness with a sum witness via `where` constraints, encoding `a * S(b) = a*b + a`.
 - Type-level `Sum` and `Product` use constrained extensions for small left operands.
 - The `@ProductConformance(n)` macro generates inductive protocols and conformances for `Product`.
+- The `@FibonacciProof(upTo:)` macro generates Fibonacci witness chains as members of the attached type.
+- The `@PiConvergenceProof(depth:)` macro generates the Brouncker-Leibniz correspondence proof as members, including CF convergents, Leibniz partial sums, product/sum witnesses, and type equality assertions.
+- Proof-generating macros use `@attached(member, names: arbitrary)` to scope generated types inside a namespace enum (e.g., `FibProof._Fib1`, `PiProof._CF1`).
+- The macro is the proof SEARCH (arbitrary integer computation at compile time); the type checker is the proof VERIFIER (structural constraint verification).
 
 ## Branching
 

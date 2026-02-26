@@ -5,5 +5,7 @@ import SwiftSyntaxMacros
 struct AbuseOfNotationPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         ProductConformanceMacro.self,
+        FibonacciProofMacro.self,
+        PiConvergenceProofMacro.self,
     ]
 }
