@@ -272,7 +272,7 @@ assertEqual(Zero.Successor.self, N1.self)
 assertEqual(N1.Successor.self, N2.self)
 assertEqual(Zero.Predecessor.self, Neg1.self)
 
-// MARK: - 10. Continued fractions and pi
+// MARK: - 10. Continued fractions and pi (macro-generated proof)
 
 // Two classical formulas approximate pi from opposite directions:
 //
@@ -286,199 +286,96 @@ assertEqual(Zero.Predecessor.self, Neg1.self)
 // S_{n+1} is the (n+1)-th Leibniz partial sum. Proving this correspondence
 // at the type level demonstrates that both representations converge to the
 // same value: pi.
-
-// --- Brouncker's CF convergents ---
-
-// Depth 0: b_0 = 1, so h_0/k_0 = 1/1.
-typealias Brouncker0 = GCFConv0<N1>
-assertEqual(Brouncker0.P.self, N1.self)
-assertEqual(Brouncker0.Q.self, N1.self)
-
-// Depth 1: a_1 = 1^2 = 1, b_1 = 2.
-//   h_1 = 2*1 + 1*1 = 3     (b*h_0 + a*h_{-1})
-//   k_1 = 2*1 + 1*0 = 2     (b*k_0 + a*k_{-1})
 //
-// Witness chain for h_1: 2*1=2 (Mul2x1), 1*1=1 (Mul1x1), 2+1=3 (sum).
-// Witness chain for k_1: 2*1=2 (Mul2x1), 1*0=0 (Mul1x0), 2+0=2 (sum).
-typealias Mul1x0 = TimesZero<N1>
-typealias Mul1x1 = TimesSucc<Mul1x0, PlusSucc<PlusZero<N0>>>
-
-typealias BH1_bh = Mul2x1                                  // 2*1 = 2
-typealias BH1_ap = Mul1x1                                  // 1*1 = 1
-typealias BH1_sum = PlusSucc<PlusZero<N2>>                  // 2+1 = 3
-
-typealias BK1_bk = Mul2x1                                  // 2*1 = 2
-typealias BK1_ap = Mul1x0                                  // 1*0 = 0
-typealias BK1_sum = PlusZero<N2>                            // 2+0 = 2
-
-typealias Brouncker1 = GCFConvStep<
-    Brouncker0, BH1_bh, BH1_ap, BH1_sum, BK1_bk, BK1_ap, BK1_sum
->
-assertEqual(Brouncker1.P.self, N3.self)   // h_1 = 3
-assertEqual(Brouncker1.Q.self, N2.self)   // k_1 = 2
-
-// Depth 2: a_2 = 3^2 = 9, b_2 = 2.
-//   h_2 = 2*3 + 9*1 = 6 + 9 = 15
-//   k_2 = 2*2 + 9*1 = 4 + 9 = 13
+// The #piConvergenceProof macro computes everything at compile time:
+//   1. CF convergents h_i/k_i via the standard recurrence
+//   2. Leibniz partial sums S_k as fractions
+//   3. All NaturalProduct and NaturalSum witness chains
+//   4. Type equality assertions proving the correspondence
 //
-// We need witnesses for 9*1: build the TimesSucc chain 9*0=0, 0+9=9, so 9*1=9.
-typealias Mul9x0 = TimesZero<N9>
-typealias Add0p9 = PlusSucc<PlusSucc<PlusSucc<PlusSucc<PlusSucc<
-    PlusSucc<PlusSucc<PlusSucc<PlusSucc<PlusZero<N0>>>>>>>>>>
-typealias Mul9x1 = TimesSucc<Mul9x0, Add0p9>               // 9*1 = 9
+// The macro is the proof SEARCH (arbitrary integer computation). The type
+// checker is the proof VERIFIER (structural constraint verification). If
+// any witness chain is wrong, compilation fails -- the macro cannot lie.
 
-typealias BH2_bh = Mul2x3                                  // 2*3 = 6
-typealias BH2_ap = Mul9x1                                  // 9*1 = 9
-typealias BH2_sum = PlusSucc<PlusSucc<PlusSucc<PlusSucc<PlusSucc<
-    PlusSucc<PlusSucc<PlusSucc<PlusSucc<PlusZero<N6>>>>>>>>>>
-                                                            // 6+9 = 15
-typealias BK2_bh = Mul2x2                                  // 2*2 = 4
-typealias BK2_ap = Mul9x1                                  // 9*1 = 9
-typealias BK2_sum = PlusSucc<PlusSucc<PlusSucc<PlusSucc<PlusSucc<
-    PlusSucc<PlusSucc<PlusSucc<PlusSucc<PlusZero<N4>>>>>>>>>>
-                                                            // 4+9 = 13
+@PiConvergenceProof(depth: 3)
+enum PiProof {}
 
-typealias Brouncker2 = GCFConvStep<
-    Brouncker1, BH2_bh, BH2_ap, BH2_sum, BK2_bh, BK2_ap, BK2_sum
->
-assertEqual(Brouncker2.P.self, N15.self)  // h_2 = 15
-assertEqual(Brouncker2.Q.self, N13.self)  // k_2 = 13
+// The macro generated CF convergents _CF0..._CF3 and Leibniz partial sums
+// _LS1..._LS4, plus all intermediate multiplication and addition witnesses,
+// as members of PiProof. Verify the computed values:
 
-// --- Leibniz series partial sums ---
+assertEqual(PiProof._CF0.P.self, N1.self)    // h_0 = 1
+assertEqual(PiProof._CF0.Q.self, N1.self)    // k_0 = 1
+assertEqual(PiProof._CF1.P.self, N3.self)    // h_1 = 3
+assertEqual(PiProof._CF1.Q.self, N2.self)    // k_1 = 2
+assertEqual(PiProof._CF2.P.self, N15.self)   // h_2 = 15
+assertEqual(PiProof._CF2.Q.self, N13.self)   // k_2 = 13
+assertEqual(PiProof._CF3.P.self, N105.self)  // h_3 = 105
+assertEqual(PiProof._CF3.Q.self, N76.self)   // k_3 = 76
 
-// S_1 = 1/1
-typealias Leibniz1 = LeibnizBase
-assertEqual(Leibniz1.P.self, N1.self)
-assertEqual(Leibniz1.Q.self, N1.self)
+assertEqual(PiProof._LS1.P.self, N1.self)    // S_1 = 1/1
+assertEqual(PiProof._LS1.Q.self, N1.self)
+assertEqual(PiProof._LS2.P.self, N2.self)    // S_2 = 2/3
+assertEqual(PiProof._LS2.Q.self, N3.self)
+assertEqual(PiProof._LS3.P.self, N13.self)   // S_3 = 13/15
+assertEqual(PiProof._LS3.Q.self, N15.self)
+assertEqual(PiProof._LS4.P.self, N76.self)   // S_4 = 76/105
+assertEqual(PiProof._LS4.Q.self, N105.self)
 
-// S_2 = 1/1 - 1/3 = (1*3 - 1) / (1*3) = 2/3
-//   Need: 1*3=3 (p*d), 1*3=3 (q*d), and 2+1=3 witnessing 3-1=2.
-typealias L2_pd = TimesSucc<TimesSucc<TimesSucc<TimesZero<N1>,
-    PlusSucc<PlusZero<N0>>>, PlusSucc<PlusZero<N1>>>, PlusSucc<PlusZero<N2>>>
-                                                            // 1*3 = 3
-typealias L2_qd = L2_pd                                    // 1*3 = 3
-// SubWitness: Left + Right = Total where Total = p*d = 3 and Right = q = 1.
-// PlusZero<N2> gives 2+0=2, PlusSucc wraps to 2+1=3. So Left=2, proving 3-1=2.
-typealias L2_witness = PlusSucc<PlusZero<N2>>               // 2+1 = 3
-
-typealias Leibniz2 = LeibnizSub<Leibniz1, L2_pd, L2_qd, L2_witness>
-assertEqual(Leibniz2.P.self, N2.self)     // numerator = 2
-assertEqual(Leibniz2.Q.self, N3.self)     // denominator = 3
-
-// S_3 = 2/3 + 1/5 = (2*5 + 3) / (3*5) = 13/15
-//   Need: 2*5 (p*d), 3*5 (q*d), and 10+3=13 (addition witness).
-
-// 2*5: chain from Mul2x3 (2*3=6), need 2*4 and 2*5.
-typealias Add6p2 = PlusSucc<PlusSucc<PlusZero<N6>>>
-typealias Mul2x4 = TimesSucc<Mul2x3, Add6p2>               // 2*4 = 8
-typealias Add8p2 = PlusSucc<PlusSucc<PlusZero<N8>>>
-typealias Mul2x5 = TimesSucc<Mul2x4, Add8p2>               // 2*5 = 10
-
-// 3*5: chain from scratch.
-typealias Mul3x0 = TimesZero<N3>
-typealias Add0p3 = PlusSucc<PlusSucc<PlusSucc<PlusZero<N0>>>>
-typealias Mul3x1 = TimesSucc<Mul3x0, Add0p3>               // 3*1 = 3
-typealias Add3p3 = PlusSucc<PlusSucc<PlusSucc<PlusZero<N3>>>>
-typealias Mul3x2 = TimesSucc<Mul3x1, Add3p3>               // 3*2 = 6
-typealias Add6p3 = PlusSucc<PlusSucc<PlusSucc<PlusZero<N6>>>>
-typealias Mul3x3 = TimesSucc<Mul3x2, Add6p3>               // 3*3 = 9
-typealias Add9p3 = PlusSucc<PlusSucc<PlusSucc<PlusZero<N9>>>>
-typealias Mul3x4 = TimesSucc<Mul3x3, Add9p3>               // 3*4 = 12
-typealias Mul3x4_Total = Mul3x4.Total
-typealias AddMul3x4p3 = PlusSucc<PlusSucc<PlusSucc<PlusZero<Mul3x4_Total>>>>
-typealias Mul3x5 = TimesSucc<Mul3x4, AddMul3x4p3>          // 3*5 = 15
-
-// 10 + 3 = 13
-typealias L3_add = PlusSucc<PlusSucc<PlusSucc<PlusZero<Mul2x5.Total>>>>
-                                                            // 10+3 = 13
-
-typealias Leibniz3 = LeibnizAdd<Leibniz2, Mul2x5, Mul3x5, L3_add>
-assertEqual(Leibniz3.P.self, N13.self)    // numerator = 13
-assertEqual(Leibniz3.Q.self, N15.self)    // denominator = 15
-
-// --- The punchline: assertEqual proves the correspondence ---
-
-// The CF convergent h_1/k_1 = 3/2 is the reciprocal of S_2 = 2/3.
-assertEqual(Brouncker1.P.self, Leibniz2.Q.self)  // 3 = 3
-assertEqual(Brouncker1.Q.self, Leibniz2.P.self)  // 2 = 2
-
-// The CF convergent h_2/k_2 = 15/13 is the reciprocal of S_3 = 13/15.
-assertEqual(Brouncker2.P.self, Leibniz3.Q.self)  // 15 = 15
-assertEqual(Brouncker2.Q.self, Leibniz3.P.self)  // 13 = 13
-
-// --- Depth 3: h_3 = 105, k_3 = 76, S_4 = 76/105 ---
-
-// Helper: PlusSucc applied 5 times, for building long sum witness chains.
-typealias P5<S: NaturalSum> = PlusSucc<PlusSucc<PlusSucc<PlusSucc<PlusSucc<S>>>>>
-typealias P13<S: NaturalSum> = P5<P5<PlusSucc<PlusSucc<PlusSucc<S>>>>>
-typealias P15<S: NaturalSum> = P5<P5<P5<S>>>
-typealias P25<S: NaturalSum> = P5<P5<P5<P5<P5<S>>>>>
-
-// Extend the 2*x witness chain from 2*6 to 2*15.
-typealias Mul2x6 = TimesSucc<Mul2x5, PlusSucc<PlusSucc<PlusZero<Mul2x5.Total>>>>
-typealias Mul2x7 = TimesSucc<Mul2x6, PlusSucc<PlusSucc<PlusZero<Mul2x6.Total>>>>
-typealias Mul2x8 = TimesSucc<Mul2x7, PlusSucc<PlusSucc<PlusZero<Mul2x7.Total>>>>
-typealias Mul2x9 = TimesSucc<Mul2x8, PlusSucc<PlusSucc<PlusZero<Mul2x8.Total>>>>
-typealias Mul2x10 = TimesSucc<Mul2x9, PlusSucc<PlusSucc<PlusZero<Mul2x9.Total>>>>
-typealias Mul2x11 = TimesSucc<Mul2x10, PlusSucc<PlusSucc<PlusZero<Mul2x10.Total>>>>
-typealias Mul2x12 = TimesSucc<Mul2x11, PlusSucc<PlusSucc<PlusZero<Mul2x11.Total>>>>
-typealias Mul2x13_W = TimesSucc<Mul2x12, PlusSucc<PlusSucc<PlusZero<Mul2x12.Total>>>>
-typealias Mul2x14 = TimesSucc<Mul2x13_W, PlusSucc<PlusSucc<PlusZero<Mul2x13_W.Total>>>>
-typealias Mul2x15 = TimesSucc<Mul2x14, PlusSucc<PlusSucc<PlusZero<Mul2x14.Total>>>>
-
-// 25*x chain (a_3 = 5^2 = 25).
-typealias Mul25x0 = TimesZero<N25>
-typealias Mul25x1 = TimesSucc<Mul25x0, P25<PlusZero<Mul25x0.Total>>>
-typealias Mul25x2 = TimesSucc<Mul25x1, P25<PlusZero<Mul25x1.Total>>>
-typealias Mul25x3 = TimesSucc<Mul25x2, P25<PlusZero<Mul25x2.Total>>>
-
-// CF depth 3:
-//   h_3 = b*h_2 + a*h_1 = 2*15 + 25*3 = 30 + 75 = 105
-//   k_3 = b*k_2 + a*k_1 = 2*13 + 25*2 = 26 + 50 = 76
-typealias BH3_sum = P25<P25<P25<PlusZero<Mul2x15.Total>>>>   // 30+75 = 105
-typealias BK3_sum = P25<P25<PlusZero<Mul2x13_W.Total>>>      // 26+50 = 76
-
-typealias Brouncker3 = GCFConvStep<
-    Brouncker2, Mul2x15, Mul25x3, BH3_sum, Mul2x13_W, Mul25x2, BK3_sum
->
-assertEqual(Brouncker3.P.self, N105.self)  // h_3 = 105
-assertEqual(Brouncker3.Q.self, N76.self)   // k_3 = 76
-
-// 13*x and 15*x chains for Leibniz S_4.
-typealias Mul13x0 = TimesZero<N13>
-typealias Mul13x1 = TimesSucc<Mul13x0, P13<PlusZero<Mul13x0.Total>>>
-typealias Mul13x2 = TimesSucc<Mul13x1, P13<PlusZero<Mul13x1.Total>>>
-typealias Mul13x3 = TimesSucc<Mul13x2, P13<PlusZero<Mul13x2.Total>>>
-typealias Mul13x4 = TimesSucc<Mul13x3, P13<PlusZero<Mul13x3.Total>>>
-typealias Mul13x5 = TimesSucc<Mul13x4, P13<PlusZero<Mul13x4.Total>>>
-typealias Mul13x6 = TimesSucc<Mul13x5, P13<PlusZero<Mul13x5.Total>>>
-typealias Mul13x7 = TimesSucc<Mul13x6, P13<PlusZero<Mul13x6.Total>>>
-
-typealias Mul15x0 = TimesZero<N15>
-typealias Mul15x1 = TimesSucc<Mul15x0, P15<PlusZero<Mul15x0.Total>>>
-typealias Mul15x2 = TimesSucc<Mul15x1, P15<PlusZero<Mul15x1.Total>>>
-typealias Mul15x3 = TimesSucc<Mul15x2, P15<PlusZero<Mul15x2.Total>>>
-typealias Mul15x4 = TimesSucc<Mul15x3, P15<PlusZero<Mul15x3.Total>>>
-typealias Mul15x5 = TimesSucc<Mul15x4, P15<PlusZero<Mul15x4.Total>>>
-typealias Mul15x6 = TimesSucc<Mul15x5, P15<PlusZero<Mul15x5.Total>>>
-typealias Mul15x7 = TimesSucc<Mul15x6, P15<PlusZero<Mul15x6.Total>>>
-
-// S_4 = 13/15 - 1/7 = (13*7 - 15) / (15*7) = (91 - 15) / 105 = 76/105
-// SubWitness: 76 + 15 = 91, proving 91 - 15 = 76.
-typealias L4_sub = P15<PlusZero<N76>>
-
-typealias Leibniz4 = LeibnizSub<Leibniz3, Mul13x7, Mul15x7, L4_sub>
-assertEqual(Leibniz4.P.self, N76.self)    // numerator = 76
-assertEqual(Leibniz4.Q.self, N105.self)   // denominator = 105
-
-// Depth 3 correspondence:
-assertEqual(Brouncker3.P.self, Leibniz4.Q.self)  // 105 = 105
-assertEqual(Brouncker3.Q.self, Leibniz4.P.self)  // 76 = 76
-
+// The macro also generated _piCorrespondenceCheck(), a function whose
+// compilation verifies the Brouncker-Leibniz correspondence at each depth:
+//   assertEqual(_CF1.P, _LS2.Q)  -- h_1 = S_2 denominator (3 = 3)
+//   assertEqual(_CF1.Q, _LS2.P)  -- k_1 = S_2 numerator   (2 = 2)
+//   assertEqual(_CF2.P, _LS3.Q)  -- h_2 = S_3 denominator (15 = 15)
+//   assertEqual(_CF2.Q, _LS3.P)  -- k_2 = S_3 numerator   (13 = 13)
+//   assertEqual(_CF3.P, _LS4.Q)  -- h_3 = S_4 denominator (105 = 105)
+//   assertEqual(_CF3.Q, _LS4.P)  -- k_3 = S_4 numerator   (76 = 76)
+//
 // These type equalities prove that Brouncker's CF for 4/pi and the Leibniz
 // series for pi/4 produce reciprocal rational approximations at each depth.
 // Since both sequences converge, and their values agree, they converge to
 // the same limit: pi.
+
+// MARK: - 11. Non-constant base case: Seed<A>
+
+// The _TimesN2 pattern has a constant base case: Zero._TimesN2Result = Zero.
+// By introducing Seed<A> — a parameterized type that conforms to Natural —
+// we get a non-constant base case: Seed<A>._Sum = A.
+// AddOne chains on top of Seed<A> then compute A + B via _InductiveAdd.
+
+assertEqual(_Exp_5p0._Sum.self, N5.self)  // 5 + 0 = 5
+assertEqual(_Exp_7p1._Sum.self, N8.self)  // 7 + 1 = 8
+assertEqual(_Exp_3p2._Sum.self, N5.self)  // 3 + 2 = 5
+
+// The base case is genuinely non-constant: different Seed<A> values
+// produce different results through the same _InductiveAdd conformance.
+assertEqual(Seed<N0>._Sum.self, N0.self)
+assertEqual(Seed<N9>._Sum.self, N9.self)
+assertEqual(AddOne<AddOne<AddOne<Seed<N4>>>>._Sum.self, N7.self)  // 4 + 3 = 7
+
+// MARK: - 12. Fibonacci at the type level (macro-generated proof)
+
+// The FibVerified protocol uses a where clause on its SumWitness
+// associated type to force Next == Prev + Current. Each FibStep
+// carries a NaturalSum witness proving the Fibonacci recurrence.
+//
+// Writing witness chains by hand is tedious -- the #fibonacciProof macro
+// computes Fibonacci numbers as regular integers at compile time, then
+// emits PlusSucc/PlusZero witness chains that the type checker verifies.
+
+@FibonacciProof(upTo: 10)
+enum FibProof {}
+
+// The macro generated FibStep chains _Fib1 through _Fib10 as members
+// of FibProof. Verify:
+assertEqual(Fib0.Current.self, N0.self)            // F(0) = 0
+assertEqual(Fib0.Next.self, N1.self)               // F(1) = 1
+assertEqual(FibProof._Fib1.Current.self, N1.self)  // F(1) = 1
+assertEqual(FibProof._Fib2.Current.self, N1.self)  // F(2) = 1
+assertEqual(FibProof._Fib3.Current.self, N2.self)  // F(3) = 2
+assertEqual(FibProof._Fib4.Current.self, N3.self)  // F(4) = 3
+assertEqual(FibProof._Fib5.Current.self, N5.self)  // F(5) = 5
+assertEqual(FibProof._Fib6.Current.self, N8.self)  // F(6) = 8
 
 // MARK: - Epilogue
 //

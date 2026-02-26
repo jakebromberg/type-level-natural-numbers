@@ -90,6 +90,26 @@ assertEqual(Product<N2, N3>.Result.self, N6.self)
 
 The `@ProductConformance(n)` macro generates the inductive protocols and conformances needed for `Product` to handle a given multiplier.
 
+## Macros as proof generators
+
+Writing witness chains by hand is explicit but tedious -- a proof of `F(10) = 55` requires threading 10 `PlusSucc`/`PlusZero` witnesses through `FibStep` chains. Swift macros automate this by computing arithmetic at compile time and emitting the witness types that the type checker independently verifies.
+
+The architecture has three layers:
+
+1. **Protocol** (human-authored) -- states the theorem (e.g., `FibVerified` requires `SumWitness` proving `Prev + Current = Next`)
+2. **Macro** (proof search) -- computes integers at compile time and emits witness chains as typealiases
+3. **Type checker** (proof verifier) -- structurally verifies every `where` constraint. If the macro emits a wrong witness, compilation fails.
+
+Both proof-generating macros use `@attached(member, names: arbitrary)`, generating all witnesses as members of a namespace enum:
+
+```swift
+@FibonacciProof(upTo: 10)
+enum FibProof {}
+
+assertEqual(FibProof._Fib5.Current.self, N5.self)  // F(5) = 5
+assertEqual(FibProof._Fib6.Current.self, N8.self)  // F(6) = 8
+```
+
 ## Church numerals
 
 A second encoding strategy alongside Peano types. Where Peano types encode the *structure* of a number (nested successors), Church numerals encode the *behavior* (function application count): `church(n)(f)(x) = f^n(x)`.
@@ -124,12 +144,15 @@ Two classical formulas approximate pi from opposite directions:
 - **Brouncker's continued fraction** for 4/pi: `1 + 1/(2 + 9/(2 + 25/(2 + ...)))`
 - **Leibniz series** for pi/4: `1 - 1/3 + 1/5 - 1/7 + ...`
 
-At every depth n, the CF convergent h_n/k_n equals 1/S_{n+1}, where S_{n+1} is the (n+1)-th Leibniz partial sum. The type-level proof constructs both sequences independently using `GCFConvergent` (CF convergents via the standard recurrence) and `LeibnizPartialSum` (alternating series via fraction arithmetic), then uses `assertEqual` to verify the correspondence:
+At every depth n, the CF convergent h_n/k_n equals 1/S_{n+1}, where S_{n+1} is the (n+1)-th Leibniz partial sum. The `@PiConvergenceProof(depth:)` macro constructs both sequences independently -- `GCFConvergent` for CF convergents via the standard recurrence, `LeibnizPartialSum` for alternating series via fraction arithmetic -- plus all intermediate product and sum witnesses, then generates `assertEqual` calls to verify the correspondence:
 
 ```swift
+@PiConvergenceProof(depth: 3)
+enum PiProof {}
+
 // CF convergent h_2/k_2 = 15/13 is the reciprocal of Leibniz S_3 = 13/15
-assertEqual(Brouncker2.P.self, Leibniz3.Q.self)  // 15 = 15
-assertEqual(Brouncker2.Q.self, Leibniz3.P.self)  // 13 = 13
+assertEqual(PiProof._CF2.P.self, PiProof._LS3.Q.self)  // 15 = 15
+assertEqual(PiProof._CF2.Q.self, PiProof._LS3.P.self)  // 13 = 13
 ```
 
 Since both sequences converge and their values agree at every depth, they converge to the same limit. The compilation itself is the proof.

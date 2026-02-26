@@ -2,7 +2,7 @@ import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
 
-private func peanoTypeName(for n: Int) -> String {
+func peanoTypeName(for n: Int) -> String {
     if n == 0 { return "Zero" }
     if n > 0 {
         return String(repeating: "AddOne<", count: n) + "Zero" + String(repeating: ">", count: n)
