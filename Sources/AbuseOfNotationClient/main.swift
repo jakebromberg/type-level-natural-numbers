@@ -410,17 +410,92 @@ assertEqual(Sqrt2Proof._MAT2.B.self, N5.self)   // MAT2 top-right = k_2 = 5
 assertEqual(Sqrt2Proof._MAT3.A.self, N17.self)  // MAT3 top-left = h_3 = 17
 assertEqual(Sqrt2Proof._MAT3.B.self, N12.self)  // MAT3 top-right = k_3 = 12
 
+// MARK: - 14. Universal addition theorems (structural induction)
+//
+// Unlike the proofs above (which verify specific values), these theorems
+// hold for ALL natural numbers. The proof is conditional conformance:
+// a base case on Zero/PlusZero and an inductive step on AddOne/PlusSucc.
+//
+// The protocols follow the _TimesNk pattern: plain associated types (no
+// where clauses) whose correctness is enforced structurally by the
+// conformance definitions. The generic functions below prove universality
+// -- the compiler accepts ANY natural or ANY proof -- and the assertEqual
+// calls verify the structural properties on concrete instances.
+
+// Theorem 1: 0 + n = n (left zero identity)
+// Proved by: extension Zero: AddLeftZero + extension AddOne: AddLeftZero
+//
+// The generic constraint proves universality: every Natural satisfies
+// AddLeftZero, so there exists a ZeroPlusProof for every n.
+func useLeftZero<N: AddLeftZero>(_: N.Type) {}
+useLeftZero(N0.self)
+useLeftZero(N5.self)
+useLeftZero(N9.self)
+
+// Verify structural correctness on concrete instances:
+assertEqual(N0.ZeroPlusProof.Left.self, Zero.self)    // 0 + 0 = 0
+assertEqual(N0.ZeroPlusProof.Right.self, N0.self)
+assertEqual(N0.ZeroPlusProof.Total.self, N0.self)
+
+assertEqual(N5.ZeroPlusProof.Left.self, Zero.self)    // 0 + 5 = 5
+assertEqual(N5.ZeroPlusProof.Right.self, N5.self)
+assertEqual(N5.ZeroPlusProof.Total.self, N5.self)
+
+assertEqual(N9.ZeroPlusProof.Left.self, Zero.self)    // 0 + 9 = 9
+assertEqual(N9.ZeroPlusProof.Right.self, N9.self)
+assertEqual(N9.ZeroPlusProof.Total.self, N9.self)
+
+// Theorem 2: a + b = c => S(a) + b = S(c) (successor-left shift)
+// Proved by: extension PlusZero: SuccLeftAdd + extension PlusSucc: SuccLeftAdd
+func useSuccLeftAdd<P: SuccLeftAdd>(_: P.Type) {}
+useSuccLeftAdd(PlusZero<N3>.self)
+useSuccLeftAdd(PlusSucc<PlusSucc<PlusZero<N2>>>.self)
+
+// 3+0=3 => 4+0=4
+assertEqual(PlusZero<N3>.Shifted.Left.self, N4.self)
+assertEqual(PlusZero<N3>.Shifted.Right.self, N0.self)
+assertEqual(PlusZero<N3>.Shifted.Total.self, N4.self)
+
+// 2+2=4 => 3+2=5
+typealias TwoPlusTwo = PlusSucc<PlusSucc<PlusZero<N2>>>
+assertEqual(TwoPlusTwo.Shifted.Left.self, N3.self)
+assertEqual(TwoPlusTwo.Shifted.Right.self, N2.self)
+assertEqual(TwoPlusTwo.Shifted.Total.self, N5.self)
+
+// Theorem 3: a + b = c => b + a = c (commutativity)
+// Proved by: extension PlusZero: AddCommutative + extension PlusSucc: AddCommutative
+func useCommutativity<P: AddCommutative>(_: P.Type) {}
+useCommutativity(PlusZero<N7>.self)
+useCommutativity(PlusSucc<PlusSucc<PlusZero<N2>>>.self)
+useCommutativity(PlusSucc<PlusSucc<PlusSucc<PlusZero<N3>>>>.self)
+
+// 7+0=7 => 0+7=7
+assertEqual(PlusZero<N7>.Commuted.Left.self, N0.self)
+assertEqual(PlusZero<N7>.Commuted.Right.self, N7.self)
+assertEqual(PlusZero<N7>.Commuted.Total.self, N7.self)
+
+// 2+2=4 => 2+2=4 (symmetric case)
+assertEqual(TwoPlusTwo.Commuted.Left.self, N2.self)
+assertEqual(TwoPlusTwo.Commuted.Right.self, N2.self)
+assertEqual(TwoPlusTwo.Commuted.Total.self, N4.self)
+
+// 3+3=6 => 3+3=6 (symmetric case)
+typealias ThreePlusThree = PlusSucc<PlusSucc<PlusSucc<PlusZero<N3>>>>
+assertEqual(ThreePlusThree.Commuted.Left.self, N3.self)
+assertEqual(ThreePlusThree.Commuted.Right.self, N3.self)
+assertEqual(ThreePlusThree.Commuted.Total.self, N6.self)
+
 // MARK: - Epilogue
 //
 // If you're reading this, the program compiled and exited cleanly. That
 // means every assertEqual call above unified its type arguments and every
 // witness type satisfied its protocol constraints. The compiler verified
-// 90+ mathematical facts about natural
-// numbers, their arithmetic, continued fractions, the Leibniz series,
-// the golden ratio / Fibonacci correspondence, and the sqrt(2) CF /
-// matrix construction -- all without executing a single computation
-// at runtime.
+// 90+ mathematical facts about natural numbers, their arithmetic,
+// continued fractions, the Leibniz series, the golden ratio / Fibonacci
+// correspondence, the sqrt(2) CF / matrix construction, and three
+// universal addition theorems (left zero identity, successor-left shift,
+// commutativity) -- all without executing a single computation at runtime.
 //
 // See docs/future-work-inductive-proofs-and-irrationals.md for what
-// comes next: universal proofs via conditional conformance, coinductive
-// streams for irrational numbers, and macro-automated proof construction.
+// comes next: universal proofs for multiplication, coinductive streams
+// for irrational numbers, and macro-automated proof construction.

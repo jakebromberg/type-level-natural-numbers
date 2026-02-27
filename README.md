@@ -155,6 +155,43 @@ assertEqual(GoldenRatioProof._CF5.P.self, N13.self)  // h_5 = 13 = F(7)
 assertEqual(GoldenRatioProof._CF5.Q.self, N8.self)   // k_5 = 8  = F(6)
 ```
 
+## Universal addition theorems
+
+The proofs above are depth-bounded: macros generate witness chains for specific values. Universal theorems, by contrast, hold for ALL natural numbers. The proof mechanism is conditional conformance -- Swift's version of structural induction.
+
+Each theorem is a protocol with a plain associated type (no `where` clauses, following the `_TimesNk` pattern). The base-case conformance on `Zero`/`PlusZero` and the inductive-step conformance on `AddOne`/`PlusSucc` together prove the property for every natural number or every addition proof.
+
+### Left zero identity: `0 + n = n`
+
+`PlusZero<N>` proves `N + 0 = N`, but `0 + N = N` requires induction on N:
+
+```swift
+// AddLeftZero: for any N, there is a NaturalSum witnessing 0 + N = N
+extension Zero: AddLeftZero { ... }                         // base case
+extension AddOne: AddLeftZero where Predecessor: AddLeftZero { ... }  // inductive step
+```
+
+### Successor-left shift: `a + b = c => S(a) + b = S(c)`
+
+The existing `PlusSucc` adds a successor on the right. This theorem shifts a successor on the left:
+
+```swift
+// SuccLeftAdd: for any proof P of a + b = c, there is a proof of S(a) + b = S(c)
+extension PlusZero: SuccLeftAdd { ... }                     // base case
+extension PlusSucc: SuccLeftAdd where Proof: SuccLeftAdd { ... }  // inductive step
+```
+
+### Commutativity: `a + b = c => b + a = c`
+
+Combines the first two theorems. The base case uses left zero identity; the inductive step uses successor-left shift:
+
+```swift
+// AddCommutative: for any proof P of a + b = c, there is a proof of b + a = c
+extension PlusZero: AddCommutative where N: AddLeftZero { ... }   // base case
+extension PlusSucc: AddCommutative
+    where Proof: AddCommutative, Proof.Commuted: SuccLeftAdd { ... }  // inductive step
+```
+
 ## sqrt(2) CF and matrix construction
 
 The sqrt(2) continued fraction [1; 2, 2, 2, ...] has convergents that can be computed either by the three-term recurrence (h_n = 2h_{n-1} + h_{n-2}) or by iterated left-multiplication by the matrix [[2,1],[1,0]]. The `@Sqrt2ConvergenceProof(depth:)` macro constructs both representations and proves they agree:
