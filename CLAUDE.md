@@ -11,16 +11,18 @@ Sources/
     PeanoTypes.swift                         -- protocols (Integer, Natural, Nonpositive), Zero, AddOne, SubOne, assertEqual
     Witnesses.swift                          -- witness protocols and constructors (NaturalSum, NaturalProduct, NaturalLessThan)
     TypeLevelArithmetic.swift                -- NaturalExpression, type aliases (N0-N105), Sum, Product, _TimesNk protocols
-    ChurchNumerals.swift                     -- Church numeral encoding (ChurchNumeral, ChurchZero, ChurchSucc, ChurchAdd, ChurchMul)
     CayleyDickson.swift                      -- Cayley-Dickson construction (Algebra marker protocol, CayleyDickson type)
-    ContinuedFractions.swift                 -- Fraction, GCFConvergent (CF convergents), LeibnizPartialSum (Leibniz series)
+    ContinuedFractions.swift                 -- Fraction, GCFConvergent (CF convergents), LeibnizPartialSum (Leibniz series), Matrix2x2, Mat2, Sqrt2MatStep (matrix construction)
     Fibonacci.swift                          -- FibState, FibVerified, Fib0, FibStep (Fibonacci recurrence witnesses)
-    Macros.swift                             -- macro declarations (@ProductConformance, @FibonacciProof, @PiConvergenceProof)
+    Macros.swift                             -- macro declarations (@ProductConformance, @FibonacciProof, @PiConvergenceProof, @GoldenRatioProof, @Sqrt2ConvergenceProof)
   AbuseOfNotationMacros/                     -- .macro target: compiler plugin
     Plugin.swift                             -- CompilerPlugin entry point
     ProductConformanceMacro.swift            -- @ProductConformance(n) (peer macro for inductive multiplication)
     FibonacciProofMacro.swift                -- @FibonacciProof(upTo:) (member macro generating Fibonacci witness chains)
     PiConvergenceProofMacro.swift            -- @PiConvergenceProof(depth:) (member macro generating Brouncker-Leibniz proof)
+    GoldenRatioProofMacro.swift              -- @GoldenRatioProof(depth:) (member macro generating golden ratio CF/Fibonacci proof)
+    Sqrt2ConvergenceProofMacro.swift         -- @Sqrt2ConvergenceProof(depth:) (member macro generating sqrt(2) CF/matrix proof)
+    ProductChainGenerator.swift              -- shared product witness chain generator (used by Pi, GoldenRatio, Sqrt2 macros)
     Diagnostics.swift                        -- PeanoDiagnostic enum
   AbuseOfNotationClient/                     -- SPM executable: witness-based proofs
     main.swift                               -- witness constructions verified by compilation, type-level arithmetic assertions
@@ -30,6 +32,8 @@ Tests/
     ProductConformanceMacroTests.swift
     FibonacciProofMacroTests.swift
     PiConvergenceProofMacroTests.swift
+    GoldenRatioProofMacroTests.swift
+    Sqrt2ConvergenceProofMacroTests.swift
 ```
 
 ## Building and testing
@@ -59,6 +63,8 @@ swift test                       # run macro expansion tests
 - The `@ProductConformance(n)` macro generates inductive protocols and conformances for `Product`.
 - The `@FibonacciProof(upTo:)` macro generates Fibonacci witness chains as members of the attached type.
 - The `@PiConvergenceProof(depth:)` macro generates the Brouncker-Leibniz correspondence proof as members, including CF convergents, Leibniz partial sums, product/sum witnesses, and type equality assertions.
+- The `@GoldenRatioProof(depth:)` macro generates the golden ratio CF / Fibonacci correspondence proof, showing that CF [1;1,1,...] convergents h_n/k_n equal F(n+2)/F(n+1).
+- The `@Sqrt2ConvergenceProof(depth:)` macro generates the sqrt(2) CF / matrix correspondence proof, showing that CF [1;2,2,...] convergents match iterated left-multiplication by [[2,1],[1,0]] via Sqrt2MatStep.
 - Proof-generating macros use `@attached(member, names: arbitrary)` to scope generated types inside a namespace enum (e.g., `FibProof._Fib1`, `PiProof._CF1`).
 - The macro is the proof SEARCH (arbitrary integer computation at compile time); the type checker is the proof VERIFIER (structural constraint verification).
 
@@ -67,3 +73,4 @@ swift test                       # run macro expansion tests
 - `master` -- witness-based proofs, type-level arithmetic, structural type definitions.
 - `witness-based-proofs` -- PR 1: paradigm shift from runtime computation to witness-based proofs.
 - `macro-cleanup` -- PR 2: removes computational macros, Xcode target, updates docs.
+- `continued-fractions` -- PR 3: golden ratio CF/Fibonacci and sqrt(2) CF/matrix correspondence proofs.

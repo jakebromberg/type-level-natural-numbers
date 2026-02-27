@@ -118,3 +118,56 @@ where
     public typealias P = AddWitness.Total  // p*d + q
     public typealias Q = QTimesD.Total     // q*d
 }
+
+// MARK: - 2x2 matrix (type-level)
+
+/// A 2x2 matrix of natural numbers, encoded as four associated types.
+/// Used to represent the matrix product form of CF convergents.
+public protocol Matrix2x2 {
+    associatedtype A: Natural  // top-left
+    associatedtype B: Natural  // top-right
+    associatedtype C: Natural  // bottom-left
+    associatedtype D: Natural  // bottom-right
+}
+
+/// Concrete 2x2 matrix type.
+public struct Mat2<TopLeft: Natural, TopRight: Natural,
+                   BottomLeft: Natural, BottomRight: Natural>: Matrix2x2 {
+    public typealias A = TopLeft
+    public typealias B = TopRight
+    public typealias C = BottomLeft
+    public typealias D = BottomRight
+}
+
+/// Left-multiplication by a 2x2 CF matrix (type-level matrix step).
+///
+/// Given Prev = [[a,b],[c,d]], produces [[f*a+c, f*b+d], [a, b]]
+/// where f is the shared Left of both product witnesses.
+/// The bottom row copies from the previous top row -- no arithmetic needed.
+/// Only 2 products + 2 sums per step.
+///
+/// For sqrt(2) CF, f=2 (the macro supplies TimesSucc witnesses with Left=N2).
+/// The relational constraint `FTimesA.Left == FTimesB.Left` ensures both
+/// products use the same factor without pinning to a concrete type, avoiding
+/// the Swift compiler's generic rewrite system complexity limit.
+public struct Sqrt2MatStep<
+    Prev: Matrix2x2,
+    FTimesA: NaturalProduct,
+    SumAC: NaturalSum,
+    FTimesB: NaturalProduct,
+    SumBD: NaturalSum
+>: Matrix2x2
+where
+    FTimesA.Left == FTimesB.Left,       // same factor f
+    FTimesA.Right == Prev.A,
+    SumAC.Left == FTimesA.Total,
+    SumAC.Right == Prev.C,
+    FTimesB.Right == Prev.B,
+    SumBD.Left == FTimesB.Total,
+    SumBD.Right == Prev.D
+{
+    public typealias A = SumAC.Total    // f*a + c
+    public typealias B = SumBD.Total    // f*b + d
+    public typealias C = Prev.A         // a (drops down)
+    public typealias D = Prev.B         // b (drops down)
+}

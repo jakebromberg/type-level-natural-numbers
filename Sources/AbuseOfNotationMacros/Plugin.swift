@@ -7,5 +7,7 @@ struct AbuseOfNotationPlugin: CompilerPlugin {
         ProductConformanceMacro.self,
         FibonacciProofMacro.self,
         PiConvergenceProofMacro.self,
+        GoldenRatioProofMacro.self,
+        Sqrt2ConvergenceProofMacro.self,
     ]
 }

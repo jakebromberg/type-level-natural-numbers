@@ -6,3 +6,9 @@ public macro FibonacciProof(upTo n: Int) = #externalMacro(module: "AbuseOfNotati
 
 @attached(member, names: arbitrary)
 public macro PiConvergenceProof(depth n: Int) = #externalMacro(module: "AbuseOfNotationMacros", type: "PiConvergenceProofMacro")
+
+@attached(member, names: arbitrary)
+public macro GoldenRatioProof(depth n: Int) = #externalMacro(module: "AbuseOfNotationMacros", type: "GoldenRatioProofMacro")
+
+@attached(member, names: arbitrary)
+public macro Sqrt2ConvergenceProof(depth n: Int) = #externalMacro(module: "AbuseOfNotationMacros", type: "Sqrt2ConvergenceProofMacro")
