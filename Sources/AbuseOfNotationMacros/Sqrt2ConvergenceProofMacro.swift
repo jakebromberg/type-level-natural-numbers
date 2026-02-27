@@ -1,0 +1,137 @@
+import SwiftDiagnostics
+import SwiftSyntax
+import SwiftSyntaxMacros
+
+/// `@Sqrt2ConvergenceProof(depth: n)` -- generates the proof that the sqrt(2)
+/// continued fraction [1; 2, 2, 2, ...] convergents match left-multiplication
+/// by the matrix [[2,1],[1,0]].
+///
+/// At compile time, the macro computes:
+///   1. Product witness chains for factors 1 and 2
+///   2. CF convergent chain _CF0..._CF{n} for [1; 2, 2, ...]
+///   3. Matrix power chain _MAT0..._MAT{n} via Sqrt2MatStep
+///   4. Correspondence check: MAT_i entries match CF_i convergents
+///
+/// The type checker independently verifies every witness chain.
+public struct Sqrt2ConvergenceProofMacro: MemberMacro {
+    public static func expansion(
+        of node: AttributeSyntax,
+        providingMembersOf declaration: some DeclGroupSyntax,
+        in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        guard let arguments = node.arguments?.as(LabeledExprListSyntax.self),
+              let argument = arguments.first?.expression,
+              let literal = argument.as(IntegerLiteralExprSyntax.self),
+              let depth = Int(literal.literal.text),
+              depth >= 1 else {
+            throw DiagnosticsError(diagnostics: [
+                Diagnostic(node: Syntax(node), message: PeanoDiagnostic.sqrt2ConvergenceRequiresPositiveInteger)
+            ])
+        }
+
+        // --- Compute CF convergents for [1; 2, 2, 2, ...] ---
+        // h_{-1}=1, h_0=b_0=1, h_i = 2*h_{i-1} + 1*h_{i-2}
+        // k_{-1}=0, k_0=1,     k_i = 2*k_{i-1} + 1*k_{i-2}
+        var H = [1, 1]  // H[0]=h_{-1}, H[1]=h_0
+        var K = [0, 1]  // K[0]=k_{-1}, K[1]=k_0
+        for i in 1...depth {
+            H.append(2 * H[i] + 1 * H[i - 1])
+            K.append(2 * K[i] + 1 * K[i - 1])
+        }
+
+        // --- Compute matrix chain [[2,1],[1,0]]^n applied to [[1,1],[1,0]] ---
+        // mat[i] = (a, b, c, d) where a=h_i, b=k_i, c=h_{i-1}, d=k_{i-1}
+        var matA = [1], matB = [1], matC = [1], matD = [0]  // MAT0
+        for i in 1...depth {
+            let prevA = matA[i - 1], prevB = matB[i - 1]
+            let prevC = matC[i - 1], prevD = matD[i - 1]
+            matA.append(2 * prevA + prevC)
+            matB.append(2 * prevB + prevD)
+            matC.append(prevA)
+            matD.append(prevB)
+        }
+
+        // --- Collect needed product chains ---
+        var gen = ProductChainGenerator()
+
+        // CF needs: b=2 times h_{i-1} and k_{i-1}, a=1 times h_{i-2} and k_{i-2}
+        for i in 1...depth {
+            gen.need(factor: 2, multiplier: H[i])       // b * h_{i-1}
+            gen.need(factor: 2, multiplier: K[i])       // b * k_{i-1}
+            gen.need(factor: 1, multiplier: H[i - 1])   // a * h_{i-2}
+            if K[i - 1] > 0 {
+                gen.need(factor: 1, multiplier: K[i - 1])  // a * k_{i-2}
+            }
+        }
+
+        // Matrix needs: 2 * prev.a and 2 * prev.b for each step
+        // (already covered by CF's factor=2 needs since mat.a = H[i+1], mat.b = K[i+1])
+        // But we still need to ensure sum witnesses are available.
+        // The product witnesses for factor=2 cover both CF and matrix.
+
+        var decls: [DeclSyntax] = gen.declarations()
+
+        // --- Generate CF convergent chain ---
+        decls.append("typealias _CF0 = GCFConv0<\(raw: peanoTypeName(for: 1))>")
+
+        for i in 1...depth {
+            let b = 2
+            let bhp = "_M\(b)x\(H[i])"       // b * h_{i-1}
+            let ahpp = "_M1x\(H[i - 1])"     // a * h_{i-2} = 1 * H[i-1]
+            let bkp = "_M\(b)x\(K[i])"       // b * k_{i-1}
+            let akpp: String
+            if K[i - 1] == 0 {
+                akpp = "_M1x0"
+            } else {
+                akpp = "_M1x\(K[i - 1])"
+            }
+
+            let bh = b * H[i]
+            let ah = 1 * H[i - 1]
+            let sumH = plusSuccChain(left: bh, right: ah)
+
+            let bk = b * K[i]
+            let ak = 1 * K[i - 1]
+            let sumK = plusSuccChain(left: bk, right: ak)
+
+            decls.append("typealias _CFS_H\(raw: String(i)) = \(raw: sumH)")
+            decls.append("typealias _CFS_K\(raw: String(i)) = \(raw: sumK)")
+            decls.append("typealias _CF\(raw: String(i)) = GCFConvStep<_CF\(raw: String(i - 1)), \(raw: bhp), \(raw: ahpp), _CFS_H\(raw: String(i)), \(raw: bkp), \(raw: akpp), _CFS_K\(raw: String(i))>")
+        }
+
+        // --- Generate matrix power chain ---
+        decls.append("typealias _MAT0 = Mat2<\(raw: peanoTypeName(for: matA[0])), \(raw: peanoTypeName(for: matB[0])), \(raw: peanoTypeName(for: matC[0])), \(raw: peanoTypeName(for: matD[0]))>")
+
+        for i in 1...depth {
+            let prevA = matA[i - 1], prevB = matB[i - 1]
+            let prevC = matC[i - 1], prevD = matD[i - 1]
+            // TwoA witness: 2 * prevA
+            let twoAName = ProductChainGenerator.name(factor: 2, multiplier: prevA)
+            // TwoB witness: 2 * prevB
+            let twoBName = ProductChainGenerator.name(factor: 2, multiplier: prevB)
+
+            // Sum witness: 2*prevA + prevC
+            let sumAC = plusSuccChain(left: 2 * prevA, right: prevC)
+            // Sum witness: 2*prevB + prevD
+            let sumBD = plusSuccChain(left: 2 * prevB, right: prevD)
+
+            decls.append("typealias _MATS_AC\(raw: String(i)) = \(raw: sumAC)")
+            decls.append("typealias _MATS_BD\(raw: String(i)) = \(raw: sumBD)")
+            decls.append("typealias _MAT\(raw: String(i)) = Sqrt2MatStep<_MAT\(raw: String(i - 1)), \(raw: twoAName), _MATS_AC\(raw: String(i)), \(raw: twoBName), _MATS_BD\(raw: String(i))>")
+        }
+
+        // --- Generate correspondence check ---
+        var body = ""
+        for i in 0...depth {
+            body += "    assertEqual(_MAT\(i).A.self, _CF\(i).P.self)\n"
+            body += "    assertEqual(_MAT\(i).B.self, _CF\(i).Q.self)\n"
+        }
+        let checkDecl: DeclSyntax = """
+        func _sqrt2CorrespondenceCheck() {
+        \(raw: body)}
+        """
+        decls.append(checkDecl)
+
+        return decls
+    }
+}

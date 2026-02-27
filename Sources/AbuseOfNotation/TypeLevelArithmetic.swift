@@ -123,7 +123,9 @@ extension Product where L == N3, R: _TimesN3 {
 // MARK: - Extended type aliases
 
 public typealias N10 = AddOne<N9>
-public typealias N13 = AddOne<AddOne<AddOne<N10>>>
+public typealias N11 = AddOne<N10>
+public typealias N12 = AddOne<N11>
+public typealias N13 = AddOne<N12>
 public typealias N15 = N5._TimesN3Result
 public typealias N25 = N5._TimesN5Result
 public typealias N26 = AddOne<N25>
@@ -133,4 +135,5 @@ public typealias N50 = N25._TimesN2Result
 public typealias N75 = N25._TimesN3Result
 public typealias N76 = AddOne<N75>
 public typealias N91 = N13._TimesN7Result
+public typealias N17 = AddOne<AddOne<AddOne<AddOne<N13>>>>
 public typealias N105 = N35._TimesN3Result

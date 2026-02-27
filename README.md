@@ -110,20 +110,6 @@ assertEqual(FibProof._Fib5.Current.self, N5.self)  // F(5) = 5
 assertEqual(FibProof._Fib6.Current.self, N8.self)  // F(6) = 8
 ```
 
-## Church numerals
-
-A second encoding strategy alongside Peano types. Where Peano types encode the *structure* of a number (nested successors), Church numerals encode the *behavior* (function application count): `church(n)(f)(x) = f^n(x)`.
-
-```swift
-protocol ChurchNumeral {
-    static func apply<T>(_ f: @escaping (T) -> T, to x: T) -> T
-}
-```
-
-Church arithmetic is defined at the type level:
-- `ChurchAdd<A, B>`: applies `f` a total of `a + b` times
-- `ChurchMul<A, B>`: applies `b(f)` a total of `a` times
-
 ## Cayley-Dickson construction
 
 The Cayley-Dickson construction builds higher-dimensional algebras from pairs. The type-level representation `CayleyDickson<Re, Im>` encodes the structure:
@@ -156,6 +142,30 @@ assertEqual(PiProof._CF2.Q.self, PiProof._LS3.P.self)  // 13 = 13
 ```
 
 Since both sequences converge and their values agree at every depth, they converge to the same limit. The compilation itself is the proof.
+
+## Golden ratio and Fibonacci
+
+The golden ratio phi = (1 + sqrt(5))/2 has the simplest continued fraction: [1; 1, 1, 1, ...]. The CF recurrence with a=1, b=1 is just h_n = h_{n-1} + h_{n-2} -- the Fibonacci recurrence. The `@GoldenRatioProof(depth:)` macro proves that h_n = F(n+2) and k_n = F(n+1) by constructing both Fibonacci witness chains and CF convergents independently, then asserting type equality:
+
+```swift
+@GoldenRatioProof(depth: 5)
+enum GoldenRatioProof {}
+
+assertEqual(GoldenRatioProof._CF5.P.self, N13.self)  // h_5 = 13 = F(7)
+assertEqual(GoldenRatioProof._CF5.Q.self, N8.self)   // k_5 = 8  = F(6)
+```
+
+## sqrt(2) CF and matrix construction
+
+The sqrt(2) continued fraction [1; 2, 2, 2, ...] has convergents that can be computed either by the three-term recurrence (h_n = 2h_{n-1} + h_{n-2}) or by iterated left-multiplication by the matrix [[2,1],[1,0]]. The `@Sqrt2ConvergenceProof(depth:)` macro constructs both representations and proves they agree:
+
+```swift
+@Sqrt2ConvergenceProof(depth: 3)
+enum Sqrt2Proof {}
+
+assertEqual(Sqrt2Proof._MAT3.A.self, Sqrt2Proof._CF3.P.self)  // 17 = 17
+assertEqual(Sqrt2Proof._MAT3.B.self, Sqrt2Proof._CF3.Q.self)  // 12 = 12
+```
 
 ## Building
 

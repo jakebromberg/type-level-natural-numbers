@@ -183,44 +183,7 @@ assertEqual(Product<N2, N3>.Result.self, Product<N3, N2>.Result.self)
 assertEqual(Product<N2, N4>.Result.self, N8.self)
 assertEqual(Product<N3, N2>.Result.self, N6.self)
 
-// MARK: - 7. Church numerals: a second encoding
-
-// Church numerals encode a number as a function that applies its argument
-// n times: church(n)(f)(x) = f^n(x). Where Peano types encode the
-// *structure* of a number (nested successors), Church numerals encode the
-// *behavior* (iteration count).
-//
-//   ChurchZero    -- applies f zero times: returns x
-//   ChurchSucc<N> -- applies f one more time than N
-
-// Church zero: f applied 0 times to 10 gives 10.
-assert(ChurchZero.apply({ $0 + 1 }, to: 10) == 10)
-
-// Church two: f applied 2 times to 0 gives 2.
-typealias ChurchTwo = ChurchSucc<ChurchSucc<ChurchZero>>
-assert(ChurchTwo.apply({ $0 + 1 }, to: 0) == 2)
-
-// Church three:
-typealias ChurchThree = ChurchSucc<ChurchTwo>
-assert(ChurchThree.apply({ $0 + 1 }, to: 0) == 3)
-
-// Church addition: (a + b)(f)(x) = a(f)(b(f)(x)).
-// Applies f a total of a+b times by composing the two numerals.
-typealias ChurchFive = ChurchAdd<ChurchTwo, ChurchThree>
-assert(ChurchFive.apply({ $0 + 1 }, to: 0) == 5)
-
-// Church multiplication: (a * b)(f)(x) = a(b(f))(x).
-// Applies b(f) (which applies f b times) a total of a times.
-typealias ChurchSix = ChurchMul<ChurchTwo, ChurchThree>
-assert(ChurchSix.apply({ $0 + 1 }, to: 0) == 6)
-
-// Church numerals demonstrate the same arithmetic as Peano witnesses,
-// but via a completely different mechanism -- function composition instead
-// of type construction. Both encodings agree:
-//   Peano:  2 + 3 = 5   (witnessed by PlusSucc chain)
-//   Church: 2 + 3 = 5   (verified by applying f to an integer)
-
-// MARK: - 8. Cayley-Dickson construction: higher-dimensional algebras
+// MARK: - 7. Cayley-Dickson construction: higher-dimensional algebras
 
 // The Cayley-Dickson construction builds algebras by pairing elements.
 // Starting from integers (level 0), each level doubles the dimension:
@@ -250,7 +213,7 @@ typealias Quat1234 = CayleyDickson<CayleyDickson<N1, N2>, CayleyDickson<N3, N4>>
 // the project's philosophy: the type system encodes structure and proves
 // relationships; it doesn't compute values.
 
-// MARK: - 9. Negative integers and the full hierarchy
+// MARK: - 8. Negative integers and the full hierarchy
 
 // The Integer protocol sits at the root, with Natural and Nonpositive
 // as refinements. SubOne<N> mirrors AddOne<N> on the nonpositive side:
@@ -272,7 +235,7 @@ assertEqual(Zero.Successor.self, N1.self)
 assertEqual(N1.Successor.self, N2.self)
 assertEqual(Zero.Predecessor.self, Neg1.self)
 
-// MARK: - 10. Continued fractions and pi (macro-generated proof)
+// MARK: - 9. Continued fractions and pi (macro-generated proof)
 
 // Two classical formulas approximate pi from opposite directions:
 //
@@ -336,7 +299,7 @@ assertEqual(PiProof._LS4.Q.self, N105.self)
 // Since both sequences converge, and their values agree, they converge to
 // the same limit: pi.
 
-// MARK: - 11. Non-constant base case: Seed<A>
+// MARK: - 10. Non-constant base case: Seed<A>
 
 // The _TimesN2 pattern has a constant base case: Zero._TimesN2Result = Zero.
 // By introducing Seed<A> — a parameterized type that conforms to Natural —
@@ -353,7 +316,7 @@ assertEqual(Seed<N0>._Sum.self, N0.self)
 assertEqual(Seed<N9>._Sum.self, N9.self)
 assertEqual(AddOne<AddOne<AddOne<Seed<N4>>>>._Sum.self, N7.self)  // 4 + 3 = 7
 
-// MARK: - 12. Fibonacci at the type level (macro-generated proof)
+// MARK: - 11. Fibonacci at the type level (macro-generated proof)
 
 // The FibVerified protocol uses a where clause on its SumWitness
 // associated type to force Next == Prev + Current. Each FibStep
@@ -377,14 +340,86 @@ assertEqual(FibProof._Fib4.Current.self, N3.self)  // F(4) = 3
 assertEqual(FibProof._Fib5.Current.self, N5.self)  // F(5) = 5
 assertEqual(FibProof._Fib6.Current.self, N8.self)  // F(6) = 8
 
+// MARK: - 12. Golden ratio and Fibonacci (macro-generated proof)
+
+// The golden ratio phi = (1 + sqrt(5))/2 has the simplest continued fraction:
+//   phi = [1; 1, 1, 1, ...]
+//
+// The CF recurrence with a=1, b=1 is just h_n = h_{n-1} + h_{n-2} -- the
+// Fibonacci recurrence. The convergents h_n/k_n satisfy:
+//   h_n = F(n+2),  k_n = F(n+1)
+//
+// The @GoldenRatioProof macro constructs both sequences independently:
+//   1. FibStep witness chains proving F(i-1) + F(i) = F(i+1)
+//   2. GCFConvStep convergents for the all-ones CF
+// Then generates assertEqual calls verifying the correspondence.
+
+@GoldenRatioProof(depth: 5)
+enum GoldenRatioProof {}
+
+// Verify CF convergents match Fibonacci values:
+assertEqual(GoldenRatioProof._CF0.P.self, N1.self)   // h_0 = 1 = F(2)
+assertEqual(GoldenRatioProof._CF0.Q.self, N1.self)   // k_0 = 1 = F(1)
+assertEqual(GoldenRatioProof._CF1.P.self, N2.self)   // h_1 = 2 = F(3)
+assertEqual(GoldenRatioProof._CF1.Q.self, N1.self)   // k_1 = 1 = F(2)
+assertEqual(GoldenRatioProof._CF2.P.self, N3.self)   // h_2 = 3 = F(4)
+assertEqual(GoldenRatioProof._CF2.Q.self, N2.self)   // k_2 = 2 = F(3)
+assertEqual(GoldenRatioProof._CF3.P.self, N5.self)   // h_3 = 5 = F(5)
+assertEqual(GoldenRatioProof._CF3.Q.self, N3.self)   // k_3 = 3 = F(4)
+assertEqual(GoldenRatioProof._CF4.P.self, N8.self)   // h_4 = 8 = F(6)
+assertEqual(GoldenRatioProof._CF4.Q.self, N5.self)   // k_4 = 5 = F(5)
+assertEqual(GoldenRatioProof._CF5.P.self, N13.self)  // h_5 = 13 = F(7)
+assertEqual(GoldenRatioProof._CF5.Q.self, N8.self)   // k_5 = 8 = F(6)
+
+// MARK: - 13. sqrt(2) CF and matrix construction (macro-generated proof)
+
+// The continued fraction for sqrt(2) is [1; 2, 2, 2, ...]:
+//   sqrt(2) = 1 + 1/(2 + 1/(2 + 1/(2 + ...)))
+//
+// The CF recurrence with a=1, b=2 gives:
+//   h_n = 2*h_{n-1} + h_{n-2},  k_n = 2*k_{n-1} + k_{n-2}
+//
+// Equivalently, left-multiplying by the matrix M = [[2,1],[1,0]]:
+//   [[h_n, k_n], [h_{n-1}, k_{n-1}]] = M * [[h_{n-1}, k_{n-1}], [h_{n-2}, k_{n-2}]]
+//
+// The @Sqrt2ConvergenceProof macro constructs both representations:
+//   1. CF convergents via GCFConvStep (three-term recurrence)
+//   2. Matrix powers via Sqrt2MatStep (iterated left-multiplication)
+// Then generates assertEqual calls proving they produce the same values.
+
+@Sqrt2ConvergenceProof(depth: 3)
+enum Sqrt2Proof {}
+
+// Verify CF convergents:
+assertEqual(Sqrt2Proof._CF0.P.self, N1.self)    // h_0 = 1
+assertEqual(Sqrt2Proof._CF0.Q.self, N1.self)    // k_0 = 1
+assertEqual(Sqrt2Proof._CF1.P.self, N3.self)    // h_1 = 3
+assertEqual(Sqrt2Proof._CF1.Q.self, N2.self)    // k_1 = 2
+assertEqual(Sqrt2Proof._CF2.P.self, N7.self)    // h_2 = 7
+assertEqual(Sqrt2Proof._CF2.Q.self, N5.self)    // k_2 = 5
+assertEqual(Sqrt2Proof._CF3.P.self, N17.self)   // h_3 = 17
+assertEqual(Sqrt2Proof._CF3.Q.self, N12.self)   // k_3 = 12
+
+// Verify matrix entries match:
+assertEqual(Sqrt2Proof._MAT0.A.self, N1.self)   // MAT0 top-left = h_0 = 1
+assertEqual(Sqrt2Proof._MAT0.B.self, N1.self)   // MAT0 top-right = k_0 = 1
+assertEqual(Sqrt2Proof._MAT1.A.self, N3.self)   // MAT1 top-left = h_1 = 3
+assertEqual(Sqrt2Proof._MAT1.B.self, N2.self)   // MAT1 top-right = k_1 = 2
+assertEqual(Sqrt2Proof._MAT2.A.self, N7.self)   // MAT2 top-left = h_2 = 7
+assertEqual(Sqrt2Proof._MAT2.B.self, N5.self)   // MAT2 top-right = k_2 = 5
+assertEqual(Sqrt2Proof._MAT3.A.self, N17.self)  // MAT3 top-left = h_3 = 17
+assertEqual(Sqrt2Proof._MAT3.B.self, N12.self)  // MAT3 top-right = k_3 = 12
+
 // MARK: - Epilogue
 //
 // If you're reading this, the program compiled and exited cleanly. That
-// means every assertEqual call above unified its type arguments, every
-// witness type satisfied its protocol constraints, and every assert
-// passed. The compiler verified 60+ mathematical facts about natural
-// numbers, their arithmetic, continued fractions, and the Leibniz
-// series -- all without executing a single computation at runtime.
+// means every assertEqual call above unified its type arguments and every
+// witness type satisfied its protocol constraints. The compiler verified
+// 90+ mathematical facts about natural
+// numbers, their arithmetic, continued fractions, the Leibniz series,
+// the golden ratio / Fibonacci correspondence, and the sqrt(2) CF /
+// matrix construction -- all without executing a single computation
+// at runtime.
 //
 // See docs/future-work-inductive-proofs-and-irrationals.md for what
 // comes next: universal proofs via conditional conformance, coinductive

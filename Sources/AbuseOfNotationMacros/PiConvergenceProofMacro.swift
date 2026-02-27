@@ -67,46 +67,28 @@ public struct PiConvergenceProofMacro: MemberMacro {
         }
 
         // --- Collect needed product chains ---
-        // products[factor] = max multiplier needed for that factor
-        var products: [Int: Int] = [:]
-
-        func need(_ factor: Int, _ multiplier: Int) {
-            products[factor] = max(products[factor] ?? 0, multiplier)
-        }
+        var gen = ProductChainGenerator()
 
         // CF products: for each depth i, need b*h_{i-1}, a_i*h_{i-2}, b*k_{i-1}, a_i*k_{i-2}
         for i in 1...depth {
             let a = (2 * i - 1) * (2 * i - 1)
-            need(2, H[i])       // b * h_{i-1}
-            need(2, K[i])       // b * k_{i-1}
-            need(a, H[i - 1])   // a_i * h_{i-2}
+            gen.need(factor: 2, multiplier: H[i])       // b * h_{i-1}
+            gen.need(factor: 2, multiplier: K[i])       // b * k_{i-1}
+            gen.need(factor: a, multiplier: H[i - 1])   // a_i * h_{i-2}
             if K[i - 1] > 0 {
-                need(a, K[i - 1])  // a_i * k_{i-2} (skip when k_{-1} = 0)
+                gen.need(factor: a, multiplier: K[i - 1])  // a_i * k_{i-2} (skip when k_{-1} = 0)
             }
         }
 
         // Leibniz products: for each step k, need p*d and q*d
         for k in 2...(depth + 1) {
             let d = 2 * k - 1
-            need(LP[k - 2], d)   // p * d
-            need(LQ[k - 2], d)   // q * d
+            gen.need(factor: LP[k - 2], multiplier: d)   // p * d
+            gen.need(factor: LQ[k - 2], multiplier: d)   // q * d
         }
 
         // --- Generate product chains ---
-        var decls: [DeclSyntax] = []
-
-        // Sort by factor for deterministic output
-        for factor in products.keys.sorted() {
-            let maxMul = products[factor]!
-            let base: DeclSyntax = "typealias _M\(raw: String(factor))x0 = TimesZero<\(raw: peanoTypeName(for: factor))>"
-            decls.append(base)
-
-            for m in 1...maxMul {
-                let addWitness = plusSuccChain(left: factor * (m - 1), right: factor)
-                let step: DeclSyntax = "typealias _M\(raw: String(factor))x\(raw: String(m)) = TimesSucc<_M\(raw: String(factor))x\(raw: String(m - 1)), \(raw: addWitness)>"
-                decls.append(step)
-            }
-        }
+        var decls: [DeclSyntax] = gen.declarations()
 
         // --- Generate CF convergent chain ---
         let cf0: DeclSyntax = "typealias _CF0 = GCFConv0<\(raw: peanoTypeName(for: 1))>"
