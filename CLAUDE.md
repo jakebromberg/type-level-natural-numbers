@@ -15,9 +15,9 @@ Sources/
     ContinuedFractions.swift                 -- Fraction, GCFConvergent (CF convergents), LeibnizPartialSum (Leibniz series), Matrix2x2, Mat2, Sqrt2MatStep (matrix construction)
     Fibonacci.swift                          -- FibState, FibVerified, Fib0, FibStep (Fibonacci recurrence witnesses)
     AdditionTheorems.swift                   -- universal addition theorems (AddLeftZero, SuccLeftAdd, AddCommutative, AddAssociative via ProofSeed)
-    MultiplicationTheorems.swift             -- flat multiplication witnesses (TimesTick, TimesGroup), universal theorems (MulLeftZero, SuccLeftMul)
+    MultiplicationTheorems.swift             -- flat multiplication witnesses (TimesTick, TimesGroup), universal theorems (MulLeftZero, SuccLeftMul, MulComm)
     Streams.swift                            -- CFStream protocol, periodic irrationals (PhiCF, Sqrt2CF), unfold theorems, assertStreamEqual
-    Macros.swift                             -- macro declarations (@ProductConformance, @FibonacciProof, @PiConvergenceProof, @GoldenRatioProof, @Sqrt2ConvergenceProof)
+    Macros.swift                             -- macro declarations (@ProductConformance, @FibonacciProof, @PiConvergenceProof, @GoldenRatioProof, @Sqrt2ConvergenceProof, @MulCommProof)
   AbuseOfNotationMacros/                     -- .macro target: compiler plugin
     Plugin.swift                             -- CompilerPlugin entry point
     ProductConformanceMacro.swift            -- @ProductConformance(n) (peer macro for inductive multiplication)
@@ -25,6 +25,7 @@ Sources/
     PiConvergenceProofMacro.swift            -- @PiConvergenceProof(depth:) (member macro generating Brouncker-Leibniz proof)
     GoldenRatioProofMacro.swift              -- @GoldenRatioProof(depth:) (member macro generating golden ratio CF/Fibonacci proof)
     Sqrt2ConvergenceProofMacro.swift         -- @Sqrt2ConvergenceProof(depth:) (member macro generating sqrt(2) CF/matrix proof)
+    MulCommProofMacro.swift                  -- @MulCommProof(leftOperand:depth:) (member macro generating paired commutativity proofs)
     ProductChainGenerator.swift              -- shared product witness chain generator (used by Pi, GoldenRatio, Sqrt2 macros)
     Diagnostics.swift                        -- PeanoDiagnostic enum
   AbuseOfNotationClient/                     -- SPM executable: witness-based proofs
@@ -37,6 +38,7 @@ Tests/
     PiConvergenceProofMacroTests.swift
     GoldenRatioProofMacroTests.swift
     Sqrt2ConvergenceProofMacroTests.swift
+    MulCommProofMacroTests.swift
 ```
 
 ## Building and testing
@@ -79,6 +81,7 @@ swift test                       # run macro expansion tests
 - `MulLeftZero` proves `0 * n = 0` for all n. `ZeroTimesProof: NaturalProduct & SuccLeftMul` -- the strengthened constraint enables chaining into commutativity proofs. With Left = 0, each group has 0 ticks, so the inductive step is just `TimesGroup` wrapping the previous proof.
 - `SuccLeftMul` proves `a * b = c => S(a) * b = c + b` for all flat multiplication proofs. `Distributed: NaturalProduct & SuccLeftMul` -- the strengthened self-referential constraint ensures the output is itself distributable, enabling inductive chaining. Each `TimesGroup` gains one extra `TimesTick` (the new successor contributes one extra unit per copy), so b groups contribute b extra ticks. Structurally identical to how `SuccLeftAdd` wraps each `PlusSucc`.
 - `_MulCommN2` / `_MulCommN3` prove `Nk * b = b * Nk` for all b (per-A commutativity). Each protocol carries paired proofs: `FwdProof` (A * b, hardcoded A ticks per group) and `RevProof` (b * A, chained via `SuccLeftMul.Distributed`). Seed types (`_MulCommN2Seed`, `_MulCommN3Seed`) provide the base case (b = 0). Full universality (for all a AND b simultaneously) requires generic associated types; per-A universality follows the `_TimesNk` pattern.
+- The `@MulCommProof(leftOperand: A, depth: D)` macro generates bounded-depth paired commutativity proofs as members of a namespace enum. For each b from 0 to D, `_FwdK` witnesses `A * b` (flat encoding: A ticks per group) and `_RevK` witnesses `b * A` (via `SuccLeftMul.Distributed`). The type checker verifies that both Totals match. This complements the universal per-A protocols: the manual protocols prove commutativity for all b, while the macro proves it for specific b values up to the given depth for any A >= 2.
 - `CFStream` is a coinductive stream protocol with `Head: Natural` and `Tail: CFStream`. For periodic continued fractions, self-referential types create productive fixed points (e.g., `PhiCF.Tail = PhiCF`). Swift resolves these lazily -- `.Tail.Tail...Head` always terminates.
 - `PhiCF` represents the golden ratio CF [1; 1, 1, ...] (entirely periodic, self-referential). `Sqrt2Periodic` represents [2; 2, 2, ...] (periodic tail). `Sqrt2CF` represents sqrt(2) = [1; 2, 2, ...] (transient head + periodic tail).
 - `PhiUnfold` / `Sqrt2PeriodicUnfold` prove that periodic streams unfold to themselves at any depth, using the Seed-based induction pattern. `PhiUnfoldSeed` / `Sqrt2PeriodicUnfoldSeed` provide the base case (depth 0); `AddOne` applies `.Tail` for the inductive step.
@@ -94,3 +97,4 @@ swift test                       # run macro expansion tests
 - `addition-associativity` -- PR for issue #29: associativity of addition via ProofSeed.
 - `multiplication-theorems` -- PR for issue #30: universal multiplication theorems (MulLeftZero, SuccLeftMul via flat encoding).
 - `coinductive-streams` -- PR for issue #31: coinductive CF streams for irrational numbers (PhiCF, Sqrt2CF, unfold theorems).
+- `mul-comm-macro` -- PR for issue #32: @MulCommProof macro for automated commutativity proof generation.

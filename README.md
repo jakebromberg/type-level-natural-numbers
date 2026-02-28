@@ -253,6 +253,20 @@ assertEqual(MulComm2x3.RevProof.Total.self, N6.self)  // 3 * 2 = 6
 
 The reverse direction chains universally because `SuccLeftMul.Distributed` is itself required to conform to `SuccLeftMul` (a strengthened self-referential constraint). The forward direction hardcodes A ticks per group, hence the per-A protocol structure.
 
+### Macro-generated commutativity proofs
+
+The `@MulCommProof(leftOperand: A, depth: D)` macro automates bounded-depth commutativity proofs for any A >= 2. It generates paired forward/reverse proof chains inside a namespace enum:
+
+```swift
+@MulCommProof(leftOperand: 4, depth: 5)
+enum MulComm4 {}
+
+assertEqual(MulComm4._Fwd3.Total.self, MulComm4._Rev3.Total.self)  // 4*3 = 3*4
+assertEqual(MulComm4._Fwd3.Total.self, N12.self)                    // = 12
+```
+
+Each `_FwdK` witnesses `A * K` using the flat encoding (A ticks per group), and each `_RevK` witnesses `K * A` via `SuccLeftMul.Distributed`. The type checker verifies that both Totals match at every depth.
+
 ## Coinductive streams for irrational numbers
 
 The convergent proofs above are bounded-depth: macros generate witness chains for specific values. Coinductive streams provide a complementary representation: the continued fraction coefficient sequence *itself* as a type.

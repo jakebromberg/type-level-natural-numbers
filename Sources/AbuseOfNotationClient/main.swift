@@ -657,6 +657,34 @@ assertEqual(MulComm3x4.FwdProof.Right.self, N4.self)
 assertEqual(MulComm3x4.RevProof.Left.self, N4.self)   // 4 * 3
 assertEqual(MulComm3x4.RevProof.Right.self, N3.self)
 
+// -- Macro-generated commutativity proofs (N4, N5) --
+// The @MulCommProof macro generates bounded-depth paired proofs:
+//   _FwdK witnesses A * K (flat encoding)
+//   _RevK witnesses K * A (via SuccLeftMul.Distributed)
+// The type checker verifies that both Total types are equal.
+
+@MulCommProof(leftOperand: 4, depth: 5)
+enum MulComm4 {}
+
+@MulCommProof(leftOperand: 5, depth: 4)
+enum MulComm5 {}
+
+// N4: 4 * 3 = 3 * 4 = 12
+assertEqual(MulComm4._Fwd3.Total.self, MulComm4._Rev3.Total.self)
+assertEqual(MulComm4._Fwd3.Total.self, N12.self)
+assertEqual(MulComm4._Fwd3.Left.self, N4.self)   // 4 * 3
+assertEqual(MulComm4._Fwd3.Right.self, N3.self)
+assertEqual(MulComm4._Rev3.Left.self, N3.self)   // 3 * 4
+assertEqual(MulComm4._Rev3.Right.self, N4.self)
+
+// N5: 5 * 2 = 2 * 5 = 10
+assertEqual(MulComm5._Fwd2.Total.self, MulComm5._Rev2.Total.self)
+assertEqual(MulComm5._Fwd2.Total.self, N10.self)
+assertEqual(MulComm5._Fwd2.Left.self, N5.self)   // 5 * 2
+assertEqual(MulComm5._Fwd2.Right.self, N2.self)
+assertEqual(MulComm5._Rev2.Left.self, N2.self)   // 2 * 5
+assertEqual(MulComm5._Rev2.Right.self, N5.self)
+
 // MARK: - 17. Coinductive streams for irrational numbers
 //
 // The proofs above represent irrational numbers through bounded-depth
@@ -743,6 +771,7 @@ assertEqual(Sqrt2CF.Head.self, Sqrt2Proof._CF0.P.self)         // both N1
 // addition theorems (left zero identity, successor-left shift,
 // commutativity, and associativity), three universal multiplication
 // theorems (left zero annihilation, successor-left multiplication, and
-// per-A commutativity), and coinductive streams for irrational numbers
-// (PhiCF, Sqrt2CF with universal unfold theorems) -- all without
-// executing a single computation at runtime.
+// per-A commutativity -- including macro-generated proofs for N4 and N5),
+// and coinductive streams for irrational numbers (PhiCF, Sqrt2CF with
+// universal unfold theorems) -- all without executing a single
+// computation at runtime.
