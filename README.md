@@ -253,6 +253,43 @@ assertEqual(MulComm2x3.RevProof.Total.self, N6.self)  // 3 * 2 = 6
 
 The reverse direction chains universally because `SuccLeftMul.Distributed` is itself required to conform to `SuccLeftMul` (a strengthened self-referential constraint). The forward direction hardcodes A ticks per group, hence the per-A protocol structure.
 
+## Coinductive streams for irrational numbers
+
+The convergent proofs above are bounded-depth: macros generate witness chains for specific values. Coinductive streams provide a complementary representation: the continued fraction coefficient sequence *itself* as a type.
+
+A `CFStream` has a `Head` (the current coefficient) and a `Tail` (the rest of the stream). For periodic continued fractions, self-referential types create a productive fixed point -- Swift resolves these lazily, so chaining `.Tail.Tail...Head` always terminates:
+
+```swift
+// Golden ratio phi = [1; 1, 1, 1, ...]
+struct PhiCF: CFStream {
+    typealias Head = N1
+    typealias Tail = PhiCF  // self-referential fixed point
+}
+
+// sqrt(2) = [1; 2, 2, 2, ...]
+struct Sqrt2CF: CFStream {
+    typealias Head = N1
+    typealias Tail = Sqrt2Periodic  // enters the periodic part
+}
+```
+
+Coefficient extraction works at any depth:
+
+```swift
+assertEqual(PhiCF.Head.self, N1.self)               // a_0 = 1
+assertEqual(PhiCF.Tail.Tail.Tail.Head.self, N1.self) // a_3 = 1
+assertStreamEqual(PhiCF.Tail.self, PhiCF.self)       // the fixed point
+```
+
+Universal unfold theorems prove that periodic streams unfold to themselves at *any* depth, not just specific ones. The proof uses the Seed-based induction pattern:
+
+```swift
+// PhiUnfold: for any n, the n-th Tail of PhiCF is PhiCF
+assertStreamEqual(AddOne<AddOne<AddOne<PhiUnfoldSeed>>>.Unfolded.self, PhiCF.self)
+```
+
+**Limitation:** The streams encode the *identity* of an irrational number (its coefficient sequence), not the *computation* of convergents. The CF recurrence `h_{n+1} = a*h_n + h_{n-1}` requires adding two abstract naturals in one step, which Swift's conditional conformance cannot express. Convergent computation remains bounded-depth via macros.
+
 ## sqrt(2) CF and matrix construction
 
 The sqrt(2) continued fraction [1; 2, 2, 2, ...] has convergents that can be computed either by the three-term recurrence (h_n = 2h_{n-1} + h_{n-2}) or by iterated left-multiplication by the matrix [[2,1],[1,0]]. The `@Sqrt2ConvergenceProof(depth:)` macro constructs both representations and proves they agree:
