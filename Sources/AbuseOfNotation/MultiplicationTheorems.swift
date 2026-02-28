@@ -149,3 +149,17 @@ extension AddOne: _MulCommN3 where Predecessor: _MulCommN3 {
     // Reverse: SuccLeftMul distributes successor across all groups
     public typealias RevProof = Predecessor.RevProof.Distributed
 }
+
+// MARK: - Macro-generated commutativity proofs
+//
+// The @MulCommProof macro generates bounded-depth paired proofs showing
+// A * b = b * A for b = 0 through the given depth. Each _FwdK witnesses
+// A * K (flat encoding) and each _RevK witnesses K * A (via SuccLeftMul).
+// The type checker verifies that both sides have the same Total.
+//
+// This is analogous to how @FibonacciProof and @PiConvergenceProof generate
+// bounded-depth proof chains. The manual _MulCommN2/_MulCommN3 protocols
+// above provide universal proofs (for all b); the macro generates verified
+// proofs up to a specific depth for any A >= 2.
+//
+// See main.swift Section 16 for @MulCommProof invocations and assertions.
