@@ -657,6 +657,81 @@ assertEqual(MulComm3x4.FwdProof.Right.self, N4.self)
 assertEqual(MulComm3x4.RevProof.Left.self, N4.self)   // 4 * 3
 assertEqual(MulComm3x4.RevProof.Right.self, N3.self)
 
+// MARK: - 17. Coinductive streams for irrational numbers
+//
+// The proofs above represent irrational numbers through bounded-depth
+// convergent chains (macro-generated). Coinductive streams provide a
+// complementary representation: the continued fraction coefficient
+// sequence *itself* as a type.
+//
+// A CFStream has a Head (the current coefficient) and a Tail (the rest
+// of the stream). For periodic continued fractions, self-referential
+// types create a productive fixed point: PhiCF.Tail = PhiCF makes the
+// type genuinely infinite. Swift resolves this lazily -- .Tail.Tail...Head
+// always terminates because each .Tail resolves to a concrete type.
+
+// -- Coefficient extraction --
+// PhiCF represents [1; 1, 1, 1, ...]. Every coefficient is 1.
+assertEqual(PhiCF.Head.self, N1.self)                         // a_0 = 1
+assertEqual(PhiCF.Tail.Head.self, N1.self)                    // a_1 = 1
+assertEqual(PhiCF.Tail.Tail.Head.self, N1.self)               // a_2 = 1
+assertEqual(PhiCF.Tail.Tail.Tail.Head.self, N1.self)          // a_3 = 1
+
+// Sqrt2CF represents [1; 2, 2, 2, ...]. Transient head, then periodic.
+assertEqual(Sqrt2CF.Head.self, N1.self)                       // a_0 = 1
+assertEqual(Sqrt2CF.Tail.Head.self, N2.self)                  // a_1 = 2
+assertEqual(Sqrt2CF.Tail.Tail.Head.self, N2.self)             // a_2 = 2
+assertEqual(Sqrt2CF.Tail.Tail.Tail.Head.self, N2.self)        // a_3 = 2
+
+// -- Structural properties: fixed points --
+// The self-referential definition PhiCF.Tail = PhiCF IS the coinductive
+// structure. The type is its own tail -- unwinding it always yields itself.
+assertStreamEqual(PhiCF.Tail.self, PhiCF.self)
+assertStreamEqual(PhiCF.Tail.Tail.self, PhiCF.self)
+assertStreamEqual(PhiCF.Tail.Tail.Tail.self, PhiCF.self)
+
+// Sqrt2Periodic is similarly self-referential:
+assertStreamEqual(Sqrt2Periodic.Tail.self, Sqrt2Periodic.self)
+assertStreamEqual(Sqrt2Periodic.Tail.Tail.self, Sqrt2Periodic.self)
+
+// Sqrt2CF's tail enters the periodic part:
+assertStreamEqual(Sqrt2CF.Tail.self, Sqrt2Periodic.self)
+assertStreamEqual(Sqrt2CF.Tail.Tail.self, Sqrt2Periodic.self)
+
+// -- Universal unfold theorems --
+// PhiUnfold proves that PhiCF unfolds to itself at ANY depth, not just
+// the specific depths tested above. The generic constraint accepts any
+// chain AddOne^n(PhiUnfoldSeed), proving universality by induction.
+func usePhiUnfold<N: PhiUnfold>(_: N.Type) {}
+usePhiUnfold(PhiUnfoldSeed.self)                                         // depth 0
+usePhiUnfold(AddOne<AddOne<AddOne<PhiUnfoldSeed>>>.self)                // depth 3
+usePhiUnfold(AddOne<AddOne<AddOne<AddOne<AddOne<PhiUnfoldSeed>>>>>.self) // depth 5
+
+// Verify the Unfolded type is PhiCF at specific depths:
+assertStreamEqual(PhiUnfoldSeed.Unfolded.self, PhiCF.self)                          // depth 0
+assertStreamEqual(AddOne<PhiUnfoldSeed>.Unfolded.self, PhiCF.self)                  // depth 1
+assertStreamEqual(AddOne<AddOne<PhiUnfoldSeed>>.Unfolded.self, PhiCF.self)          // depth 2
+assertStreamEqual(AddOne<AddOne<AddOne<PhiUnfoldSeed>>>.Unfolded.self, PhiCF.self)  // depth 3
+
+// Similarly for Sqrt2Periodic:
+func useSqrt2PeriodicUnfold<N: Sqrt2PeriodicUnfold>(_: N.Type) {}
+useSqrt2PeriodicUnfold(Sqrt2PeriodicUnfoldSeed.self)
+useSqrt2PeriodicUnfold(AddOne<AddOne<AddOne<Sqrt2PeriodicUnfoldSeed>>>.self)
+
+assertStreamEqual(Sqrt2PeriodicUnfoldSeed.Unfolded.self, Sqrt2Periodic.self)
+assertStreamEqual(AddOne<Sqrt2PeriodicUnfoldSeed>.Unfolded.self, Sqrt2Periodic.self)
+assertStreamEqual(AddOne<AddOne<Sqrt2PeriodicUnfoldSeed>>.Unfolded.self, Sqrt2Periodic.self)
+
+// -- Connection to existing convergent proofs --
+// The stream coefficients match the values used by the macro-generated
+// convergent constructions. GCFConv0<B0> takes the first CF coefficient
+// as its type parameter; for depth-0 convergents, h_0 = b_0.
+//
+// Golden ratio: PhiCF.Head = 1, matching the all-ones CF [1; 1, 1, ...]
+assertEqual(PhiCF.Head.self, GoldenRatioProof._CF0.P.self)    // both N1
+// Sqrt2: Sqrt2CF.Head = 1, matching [1; 2, 2, ...]
+assertEqual(Sqrt2CF.Head.self, Sqrt2Proof._CF0.P.self)         // both N1
+
 // MARK: - Epilogue
 //
 // If you're reading this, the program compiled and exited cleanly. That
@@ -666,11 +741,8 @@ assertEqual(MulComm3x4.RevProof.Right.self, N3.self)
 // continued fractions, the Leibniz series, the golden ratio / Fibonacci
 // correspondence, the sqrt(2) CF / matrix construction, four universal
 // addition theorems (left zero identity, successor-left shift,
-// commutativity, and associativity), and three universal multiplication
+// commutativity, and associativity), three universal multiplication
 // theorems (left zero annihilation, successor-left multiplication, and
-// per-A commutativity) -- all
-// without executing a single computation at runtime.
-//
-// See docs/future-work-inductive-proofs-and-irrationals.md for what
-// comes next: universal proofs for multiplication, coinductive streams
-// for irrational numbers, and macro-automated proof construction.
+// per-A commutativity), and coinductive streams for irrational numbers
+// (PhiCF, Sqrt2CF with universal unfold theorems) -- all without
+// executing a single computation at runtime.

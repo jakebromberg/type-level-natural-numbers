@@ -16,6 +16,7 @@ Sources/
     Fibonacci.swift                          -- FibState, FibVerified, Fib0, FibStep (Fibonacci recurrence witnesses)
     AdditionTheorems.swift                   -- universal addition theorems (AddLeftZero, SuccLeftAdd, AddCommutative, AddAssociative via ProofSeed)
     MultiplicationTheorems.swift             -- flat multiplication witnesses (TimesTick, TimesGroup), universal theorems (MulLeftZero, SuccLeftMul)
+    Streams.swift                            -- CFStream protocol, periodic irrationals (PhiCF, Sqrt2CF), unfold theorems, assertStreamEqual
     Macros.swift                             -- macro declarations (@ProductConformance, @FibonacciProof, @PiConvergenceProof, @GoldenRatioProof, @Sqrt2ConvergenceProof)
   AbuseOfNotationMacros/                     -- .macro target: compiler plugin
     Plugin.swift                             -- CompilerPlugin entry point
@@ -49,7 +50,7 @@ swift test                       # run macro expansion tests
 ### Testing conventions
 
 - Arithmetic correctness is verified by witness construction: if the types compile, the proof is valid.
-- `assertEqual<T: Integer>(_: T.Type, _: T.Type)` asserts type equality at compile time (empty body -- compilation is the assertion).
+- `assertEqual<T: Integer>(_: T.Type, _: T.Type)` asserts type equality at compile time (empty body -- compilation is the assertion). `assertStreamEqual<T: CFStream>` does the same for stream types.
 - Macro expansion correctness is verified by `assertMacroExpansion` in `swift test`.
 - A clean `swift build && swift run AbuseOfNotationClient && swift test` means all checks pass.
 
@@ -78,6 +79,11 @@ swift test                       # run macro expansion tests
 - `MulLeftZero` proves `0 * n = 0` for all n. `ZeroTimesProof: NaturalProduct & SuccLeftMul` -- the strengthened constraint enables chaining into commutativity proofs. With Left = 0, each group has 0 ticks, so the inductive step is just `TimesGroup` wrapping the previous proof.
 - `SuccLeftMul` proves `a * b = c => S(a) * b = c + b` for all flat multiplication proofs. `Distributed: NaturalProduct & SuccLeftMul` -- the strengthened self-referential constraint ensures the output is itself distributable, enabling inductive chaining. Each `TimesGroup` gains one extra `TimesTick` (the new successor contributes one extra unit per copy), so b groups contribute b extra ticks. Structurally identical to how `SuccLeftAdd` wraps each `PlusSucc`.
 - `_MulCommN2` / `_MulCommN3` prove `Nk * b = b * Nk` for all b (per-A commutativity). Each protocol carries paired proofs: `FwdProof` (A * b, hardcoded A ticks per group) and `RevProof` (b * A, chained via `SuccLeftMul.Distributed`). Seed types (`_MulCommN2Seed`, `_MulCommN3Seed`) provide the base case (b = 0). Full universality (for all a AND b simultaneously) requires generic associated types; per-A universality follows the `_TimesNk` pattern.
+- `CFStream` is a coinductive stream protocol with `Head: Natural` and `Tail: CFStream`. For periodic continued fractions, self-referential types create productive fixed points (e.g., `PhiCF.Tail = PhiCF`). Swift resolves these lazily -- `.Tail.Tail...Head` always terminates.
+- `PhiCF` represents the golden ratio CF [1; 1, 1, ...] (entirely periodic, self-referential). `Sqrt2Periodic` represents [2; 2, 2, ...] (periodic tail). `Sqrt2CF` represents sqrt(2) = [1; 2, 2, ...] (transient head + periodic tail).
+- `PhiUnfold` / `Sqrt2PeriodicUnfold` prove that periodic streams unfold to themselves at any depth, using the Seed-based induction pattern. `PhiUnfoldSeed` / `Sqrt2PeriodicUnfoldSeed` provide the base case (depth 0); `AddOne` applies `.Tail` for the inductive step.
+- `assertStreamEqual<T: CFStream>(_: T.Type, _: T.Type)` provides compile-time type equality assertions for `CFStream` types, analogous to `assertEqual` for `Integer` types.
+- Universal convergent extraction from streams is not possible: the CF recurrence `h_{n+1} = a*h_n + h_{n-1}` requires adding two abstract naturals in one step, which Swift's conditional conformance cannot express. Convergent computation remains bounded-depth via macros. The streams encode the *identity* of the irrational number (its coefficient sequence), not the *computation*.
 
 ## Branching
 
@@ -87,3 +93,4 @@ swift test                       # run macro expansion tests
 - `continued-fractions` -- PR 3: golden ratio CF/Fibonacci and sqrt(2) CF/matrix correspondence proofs.
 - `addition-associativity` -- PR for issue #29: associativity of addition via ProofSeed.
 - `multiplication-theorems` -- PR for issue #30: universal multiplication theorems (MulLeftZero, SuccLeftMul via flat encoding).
+- `coinductive-streams` -- PR for issue #31: coinductive CF streams for irrational numbers (PhiCF, Sqrt2CF, unfold theorems).
