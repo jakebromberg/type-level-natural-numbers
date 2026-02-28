@@ -236,6 +236,23 @@ extension TimesTick: SuccLeftMul where Proof: SuccLeftMul { ... }  // tick step
 extension TimesGroup: SuccLeftMul where Proof: SuccLeftMul { ... }  // group step (inserts extra tick)
 ```
 
+### Commutativity: `a * b = b * a` (per fixed A)
+
+Unlike addition commutativity (which transforms a single proof), multiplication commutativity must relate two structurally different proofs: `a * b` has b groups of a ticks, while `b * a` has a groups of b ticks. Swift's type system (lacking generic associated types) cannot express a universal transformation over both a and b simultaneously.
+
+The solution decomposes commutativity into per-A protocols following the `_TimesNk` pattern. For each fixed A, the `_MulCommNk` protocol proves `A * b = b * A` for all b by paired induction:
+
+```swift
+// _MulCommN2: proves 2 * b = b * 2 for all b
+// FwdProof constructs 2 * S(b) from 2 * b (2 ticks + group)
+// RevProof constructs S(b) * 2 from b * 2 (SuccLeftMul.Distributed)
+typealias MulComm2x3 = AddOne<AddOne<AddOne<_MulCommN2Seed>>>
+assertEqual(MulComm2x3.FwdProof.Total.self, N6.self)  // 2 * 3 = 6
+assertEqual(MulComm2x3.RevProof.Total.self, N6.self)  // 3 * 2 = 6
+```
+
+The reverse direction chains universally because `SuccLeftMul.Distributed` is itself required to conform to `SuccLeftMul` (a strengthened self-referential constraint). The forward direction hardcodes A ticks per group, hence the per-A protocol structure.
+
 ## sqrt(2) CF and matrix construction
 
 The sqrt(2) continued fraction [1; 2, 2, 2, ...] has convergents that can be computed either by the three-term recurrence (h_n = 2h_{n-1} + h_{n-2}) or by iterated left-multiplication by the matrix [[2,1],[1,0]]. The `@Sqrt2ConvergenceProof(depth:)` macro constructs both representations and proves they agree:

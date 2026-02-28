@@ -620,6 +620,43 @@ assertEqual(FlatMul2x2.Distributed.Left.self, N3.self)
 assertEqual(FlatMul2x2.Distributed.Right.self, N2.self)
 assertEqual(FlatMul2x2.Distributed.Total.self, N6.self)
 
+// -- Theorem 3: a * b = b * a (commutativity, per fixed A) --
+// For each fixed A (N2, N3, ...), proves A * b = b * A for all b.
+// The forward proof constructs A * b directly (A ticks per group).
+// The reverse proof chains SuccLeftMul from 0 * A = 0 up to b * A.
+
+// Universality: the generic constraint accepts ANY chain AddOne^b(_MulCommN2Seed)
+func useMulCommN2<N: _MulCommN2>(_: N.Type) {}
+useMulCommN2(_MulCommN2Seed.self)                                      // b = 0
+useMulCommN2(AddOne<AddOne<AddOne<_MulCommN2Seed>>>.self)              // b = 3
+
+// Verify Totals match: 2 * 3 = 3 * 2 = 6
+typealias MulComm2x3 = AddOne<AddOne<AddOne<_MulCommN2Seed>>>
+assertEqual(MulComm2x3.FwdProof.Total.self, MulComm2x3.RevProof.Total.self)
+assertEqual(MulComm2x3.FwdProof.Total.self, N6.self)
+
+// Verify Left/Right are correct:
+assertEqual(MulComm2x3.FwdProof.Left.self, N2.self)   // 2 * 3
+assertEqual(MulComm2x3.FwdProof.Right.self, N3.self)
+assertEqual(MulComm2x3.RevProof.Left.self, N3.self)   // 3 * 2
+assertEqual(MulComm2x3.RevProof.Right.self, N2.self)
+
+// Similarly for N3: universality over all b
+func useMulCommN3<N: _MulCommN3>(_: N.Type) {}
+useMulCommN3(_MulCommN3Seed.self)                                                // b = 0
+useMulCommN3(AddOne<AddOne<AddOne<AddOne<_MulCommN3Seed>>>>.self)                // b = 4
+
+// Verify Totals match: 3 * 4 = 4 * 3 = 12
+typealias MulComm3x4 = AddOne<AddOne<AddOne<AddOne<_MulCommN3Seed>>>>
+assertEqual(MulComm3x4.FwdProof.Total.self, MulComm3x4.RevProof.Total.self)
+assertEqual(MulComm3x4.FwdProof.Total.self, N12.self)
+
+// Verify Left/Right are correct:
+assertEqual(MulComm3x4.FwdProof.Left.self, N3.self)   // 3 * 4
+assertEqual(MulComm3x4.FwdProof.Right.self, N4.self)
+assertEqual(MulComm3x4.RevProof.Left.self, N4.self)   // 4 * 3
+assertEqual(MulComm3x4.RevProof.Right.self, N3.self)
+
 // MARK: - Epilogue
 //
 // If you're reading this, the program compiled and exited cleanly. That
@@ -629,8 +666,9 @@ assertEqual(FlatMul2x2.Distributed.Total.self, N6.self)
 // continued fractions, the Leibniz series, the golden ratio / Fibonacci
 // correspondence, the sqrt(2) CF / matrix construction, four universal
 // addition theorems (left zero identity, successor-left shift,
-// commutativity, and associativity), and two universal multiplication
-// theorems (left zero annihilation, successor-left multiplication) -- all
+// commutativity, and associativity), and three universal multiplication
+// theorems (left zero annihilation, successor-left multiplication, and
+// per-A commutativity) -- all
 // without executing a single computation at runtime.
 //
 // See docs/future-work-inductive-proofs-and-irrationals.md for what

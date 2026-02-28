@@ -37,7 +37,7 @@ public struct TimesGroup<Proof: NaturalProduct>: NaturalProduct {
 /// With Left = 0, each group has 0 ticks (no TimesTicks needed), so the
 /// inductive step is just TimesGroup wrapping the previous proof.
 public protocol MulLeftZero: Natural {
-    associatedtype ZeroTimesProof: NaturalProduct
+    associatedtype ZeroTimesProof: NaturalProduct & SuccLeftMul
 }
 
 // Base case: 0 * 0 = 0
@@ -60,7 +60,7 @@ extension AddOne: MulLeftZero where Predecessor: MulLeftZero {
 ///
 /// Structurally identical to how SuccLeftAdd wraps each PlusSucc.
 public protocol SuccLeftMul: NaturalProduct {
-    associatedtype Distributed: NaturalProduct
+    associatedtype Distributed: NaturalProduct & SuccLeftMul
 }
 
 // Base case: TimesZero<N> witnesses N * 0 = 0
@@ -82,4 +82,70 @@ extension TimesTick: SuccLeftMul where Proof: SuccLeftMul {
 // The extra TimesTick accounts for the new successor's contribution to this group.
 extension TimesGroup: SuccLeftMul where Proof: SuccLeftMul {
     public typealias Distributed = TimesGroup<TimesTick<Proof.Distributed>>
+}
+
+// MARK: - Theorem 3: Commutativity (a * b = b * a, per fixed A)
+
+// For each fixed A, _MulCommNk proves A * b = b * A for all b by induction on b:
+//   Base (b=0): A * 0 = 0 (TimesZero) and 0 * A = 0 (MulLeftZero). Both Total = 0.
+//   Step (b → S(b)):
+//     Forward (A * S(b)): add A-many TimesTicks + TimesGroup to previous A * b proof.
+//     Reverse (S(b) * A): apply SuccLeftMul to previous b * A proof.
+//
+// The forward side hardcodes A ticks per group (hence per-A protocols). The reverse
+// side chains universally because SuccLeftMul.Distributed: SuccLeftMul (strengthened).
+//
+// Full universality (for all a AND b) is not expressible in Swift's current type system
+// due to the lack of generic associated types. Each _MulCommNk is universal over b.
+
+/// Proves N2 * b = b * N2 for all b.
+public protocol _MulCommN2: Natural {
+    associatedtype FwdProof: NaturalProduct               // N2 * Self
+    associatedtype RevProof: NaturalProduct & SuccLeftMul  // Self * N2
+}
+
+/// Seed type for _MulCommN2 induction (represents b = 0).
+public enum _MulCommN2Seed: Natural {
+    public typealias Successor = AddOne<Self>
+    public typealias Predecessor = SubOne<Zero>
+}
+
+// Base case: N2 * 0 = 0 and 0 * N2 = 0
+extension _MulCommN2Seed: _MulCommN2 {
+    public typealias FwdProof = TimesZero<N2>
+    public typealias RevProof = N2.ZeroTimesProof
+}
+
+// Inductive step: given N2 * b and b * N2, produce N2 * S(b) and S(b) * N2
+extension AddOne: _MulCommN2 where Predecessor: _MulCommN2 {
+    // Forward: 2 ticks (one copy of N2) + group boundary
+    public typealias FwdProof = TimesGroup<TimesTick<TimesTick<Predecessor.FwdProof>>>
+    // Reverse: SuccLeftMul distributes successor across all groups
+    public typealias RevProof = Predecessor.RevProof.Distributed
+}
+
+/// Proves N3 * b = b * N3 for all b.
+public protocol _MulCommN3: Natural {
+    associatedtype FwdProof: NaturalProduct               // N3 * Self
+    associatedtype RevProof: NaturalProduct & SuccLeftMul  // Self * N3
+}
+
+/// Seed type for _MulCommN3 induction (represents b = 0).
+public enum _MulCommN3Seed: Natural {
+    public typealias Successor = AddOne<Self>
+    public typealias Predecessor = SubOne<Zero>
+}
+
+// Base case: N3 * 0 = 0 and 0 * N3 = 0
+extension _MulCommN3Seed: _MulCommN3 {
+    public typealias FwdProof = TimesZero<N3>
+    public typealias RevProof = N3.ZeroTimesProof
+}
+
+// Inductive step: given N3 * b and b * N3, produce N3 * S(b) and S(b) * N3
+extension AddOne: _MulCommN3 where Predecessor: _MulCommN3 {
+    // Forward: 3 ticks (one copy of N3) + group boundary
+    public typealias FwdProof = TimesGroup<TimesTick<TimesTick<TimesTick<Predecessor.FwdProof>>>>
+    // Reverse: SuccLeftMul distributes successor across all groups
+    public typealias RevProof = Predecessor.RevProof.Distributed
 }
