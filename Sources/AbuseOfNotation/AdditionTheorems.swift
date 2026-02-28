@@ -80,3 +80,34 @@ extension PlusSucc: AddCommutative
 {
     public typealias Commuted = Proof.Commuted.Shifted
 }
+
+// MARK: - Theorem 4: Associativity ((a + b) + c = a + (b + c))
+
+/// A Natural wrapping a NaturalSum proof, serving as base case for proof
+/// extension. Analogous to Seed<A> for _InductiveAdd, but wraps a proof
+/// instead of a number.
+///
+/// Building c layers of AddOne on ProofSeed<P> and extracting AssocProof
+/// yields PlusSucc^c(P): the associativity proof.
+public enum ProofSeed<P: NaturalSum>: Natural {
+    public typealias Successor = AddOne<Self>
+    public typealias Predecessor = SubOne<Zero>
+}
+
+/// For any chain AddOne^c(ProofSeed<P>), the AssocProof is PlusSucc^c(P),
+/// witnessing a + (b + c) = d + c where P witnesses a + b = d.
+///
+/// Universality is twofold: parametric over P (any proof) and inductive
+/// over c (any natural). This solves the "two-variable" problem noted in
+/// section 5.2 of the future-work document.
+public protocol AddAssociative: Natural {
+    associatedtype AssocProof: NaturalSum
+}
+
+extension ProofSeed: AddAssociative {
+    public typealias AssocProof = P
+}
+
+extension AddOne: AddAssociative where Predecessor: AddAssociative {
+    public typealias AssocProof = PlusSucc<Predecessor.AssocProof>
+}
