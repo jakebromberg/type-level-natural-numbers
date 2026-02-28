@@ -15,6 +15,7 @@ Sources/
     ContinuedFractions.swift                 -- Fraction, GCFConvergent (CF convergents), LeibnizPartialSum (Leibniz series), Matrix2x2, Mat2, Sqrt2MatStep (matrix construction)
     Fibonacci.swift                          -- FibState, FibVerified, Fib0, FibStep (Fibonacci recurrence witnesses)
     AdditionTheorems.swift                   -- universal addition theorems (AddLeftZero, SuccLeftAdd, AddCommutative, AddAssociative via ProofSeed)
+    MultiplicationTheorems.swift             -- universal multiplication theorems (MulLeftZero)
     Macros.swift                             -- macro declarations (@ProductConformance, @FibonacciProof, @PiConvergenceProof, @GoldenRatioProof, @Sqrt2ConvergenceProof)
   AbuseOfNotationMacros/                     -- .macro target: compiler plugin
     Plugin.swift                             -- CompilerPlugin entry point
@@ -72,6 +73,8 @@ swift test                       # run macro expansion tests
 - `AddLeftZero` proves `0 + n = n` for all n. `SuccLeftAdd` proves `a + b = c => S(a) + b = S(c)` for all proofs. `AddCommutative` proves `a + b = c => b + a = c` for all proofs (combines the first two).
 - `ProofSeed<P>` is a `Natural`-conforming enum that wraps a `NaturalSum` proof as a base case for inductive proof extension. Analogous to `Seed<A>` but wraps a proof instead of a number.
 - `AddAssociative` proves associativity: given P witnessing `a + b = d`, `AddOne^c(ProofSeed<P>).AssocProof = PlusSucc^c(P)` witnesses `a + (b + c) = d + c`. Universality is parametric over P and inductive over c.
+- `MulLeftZero` proves `0 * n = 0` for all n. Uses plain associated types (no where clauses) like the addition theorems. The inductive step uses `TimesZeroLeft` (a derived lemma) instead of `TimesSucc`, because `TimesSucc`'s where clauses trigger rewrite system explosion when composed in inductive protocols.
+- `TimesZeroLeft<MulProof>` is a derived witness encoding `0 * S(B) = 0` given `0 * B = 0`. It specializes the general multiplication step `A * S(B) = A*B + A` to `A = 0`, where the arithmetic simplifies to `0 + 0 = 0`, and encodes the result directly as a `NaturalProduct`.
 
 ## Branching
 
@@ -80,3 +83,4 @@ swift test                       # run macro expansion tests
 - `macro-cleanup` -- PR 2: removes computational macros, Xcode target, updates docs.
 - `continued-fractions` -- PR 3: golden ratio CF/Fibonacci and sqrt(2) CF/matrix correspondence proofs.
 - `addition-associativity` -- PR for issue #29: associativity of addition via ProofSeed.
+- `multiplication-theorems` -- PR for issue #30: universal multiplication theorems (MulLeftZero).

@@ -206,6 +206,21 @@ assertEqual(Assoc3p2p4.AssocProof.Total.self, N9.self)
 
 Universality is twofold: parametric over the seed proof (any `NaturalSum`) and inductive over the extension depth (any natural number).
 
+## Universal multiplication theorems
+
+Unlike the addition theorems (which compose freely because `PlusSucc` has no where clauses), multiplication theorems face a composition obstacle: `TimesSucc` has where clauses (`AddProof.Left == MulProof.Total`, `AddProof.Right == MulProof.Left`) that trigger rewrite system explosion when used in inductive protocols. The solution is derived lemma types that specialize `TimesSucc` for specific cases.
+
+### Left zero annihilation: `0 * n = 0`
+
+`TimesZero<N>` proves `N * 0 = 0`, but `0 * N = 0` requires induction on N. The inductive step uses `TimesZeroLeft`, a derived lemma that encodes `0 * S(B) = 0` given `0 * B = 0`:
+
+```swift
+// TimesZeroLeft: derived lemma specializing 0 * S(B) = 0*B + 0 = 0 + 0 = 0
+// MulLeftZero: for any N, there is a NaturalProduct witnessing 0 * N = 0
+extension Zero: MulLeftZero { ... }                         // base case
+extension AddOne: MulLeftZero where Predecessor: MulLeftZero { ... }  // inductive step
+```
+
 ## sqrt(2) CF and matrix construction
 
 The sqrt(2) continued fraction [1; 2, 2, 2, ...] has convergents that can be computed either by the three-term recurrence (h_n = 2h_{n-1} + h_{n-2}) or by iterated left-multiplication by the matrix [[2,1],[1,0]]. The `@Sqrt2ConvergenceProof(depth:)` macro constructs both representations and proves they agree:

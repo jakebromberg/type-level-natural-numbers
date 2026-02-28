@@ -536,6 +536,35 @@ assertEqual(Assoc2p3p2.AssocProof.Total.self, N7.self)      // d + c = 5 + 2 = 7
 typealias FivePlusTwo = PlusSucc<PlusSucc<PlusZero<N5>>>
 assertEqual(Assoc2p3p2.AssocProof.Total.self, FivePlusTwo.Total.self)
 
+// MARK: - 16. Universal multiplication theorems (structural induction)
+//
+// Multiplication theorems require where clauses on the protocol's associated
+// type, unlike addition theorems. This is because TimesSucc has where
+// constraints (AddProof.Left == MulProof.Total, AddProof.Right == MulProof.Left)
+// that the compiler must verify at each inductive step. The where clauses
+// constrain to the concrete type Zero, so they don't trigger the rewrite
+// system issues that motivated the "no where clauses" convention.
+
+// Theorem: 0 * n = 0 (left zero annihilation)
+// Proved by: extension Zero: MulLeftZero + extension AddOne: MulLeftZero
+func useLeftZeroMul<N: MulLeftZero>(_: N.Type) {}
+useLeftZeroMul(N0.self)
+useLeftZeroMul(N5.self)
+useLeftZeroMul(N9.self)
+
+// Verify structural correctness:
+assertEqual(N0.ZeroTimesProof.Left.self, Zero.self)     // 0 * 0: left = 0
+assertEqual(N0.ZeroTimesProof.Right.self, N0.self)      // 0 * 0: right = 0
+assertEqual(N0.ZeroTimesProof.Total.self, N0.self)      // 0 * 0 = 0
+
+assertEqual(N5.ZeroTimesProof.Left.self, Zero.self)     // 0 * 5: left = 0
+assertEqual(N5.ZeroTimesProof.Right.self, N5.self)      // 0 * 5: right = 5
+assertEqual(N5.ZeroTimesProof.Total.self, N0.self)      // 0 * 5 = 0
+
+assertEqual(N9.ZeroTimesProof.Left.self, Zero.self)     // 0 * 9: left = 0
+assertEqual(N9.ZeroTimesProof.Right.self, N9.self)      // 0 * 9: right = 9
+assertEqual(N9.ZeroTimesProof.Total.self, N0.self)      // 0 * 9 = 0
+
 // MARK: - Epilogue
 //
 // If you're reading this, the program compiled and exited cleanly. That
@@ -543,9 +572,10 @@ assertEqual(Assoc2p3p2.AssocProof.Total.self, FivePlusTwo.Total.self)
 // witness type satisfied its protocol constraints. The compiler verified
 // 90+ mathematical facts about natural numbers, their arithmetic,
 // continued fractions, the Leibniz series, the golden ratio / Fibonacci
-// correspondence, the sqrt(2) CF / matrix construction, and four
-// universal addition theorems (left zero identity, successor-left shift,
-// commutativity, and associativity) -- all without executing a single
+// correspondence, the sqrt(2) CF / matrix construction, four universal
+// addition theorems (left zero identity, successor-left shift,
+// commutativity, and associativity), and one universal multiplication
+// theorem (left zero annihilation) -- all without executing a single
 // computation at runtime.
 //
 // See docs/future-work-inductive-proofs-and-irrationals.md for what
