@@ -192,6 +192,20 @@ extension PlusSucc: AddCommutative
     where Proof: AddCommutative, Proof.Commuted: SuccLeftAdd { ... }  // inductive step
 ```
 
+### Associativity: `(a + b) + c = a + (b + c)`
+
+Associativity is a binary theorem requiring two addition proofs (one for `a + b`, one for the result plus `c`). Swift protocols can only do induction on one type parameter. The `ProofSeed` technique solves this by encoding one proof as a seed type and doing induction on the other:
+
+```swift
+// ProofSeed<P>: a Natural wrapping a NaturalSum proof as a base case
+// AddAssociative: for any chain AddOne^c(ProofSeed<P>), the AssocProof is PlusSucc^c(P)
+typealias Assoc3p2p4 = AddOne<AddOne<AddOne<AddOne<ProofSeed<ThreePlusTwo>>>>>
+// AssocProof witnesses 3 + 6 = 9 (i.e. 3 + (2+4) = (3+2) + 4)
+assertEqual(Assoc3p2p4.AssocProof.Total.self, N9.self)
+```
+
+Universality is twofold: parametric over the seed proof (any `NaturalSum`) and inductive over the extension depth (any natural number).
+
 ## sqrt(2) CF and matrix construction
 
 The sqrt(2) continued fraction [1; 2, 2, 2, ...] has convergents that can be computed either by the three-term recurrence (h_n = 2h_{n-1} + h_{n-2}) or by iterated left-multiplication by the matrix [[2,1],[1,0]]. The `@Sqrt2ConvergenceProof(depth:)` macro constructs both representations and proves they agree:

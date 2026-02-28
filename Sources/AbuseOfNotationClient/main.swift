@@ -485,6 +485,57 @@ assertEqual(ThreePlusThree.Commuted.Left.self, N3.self)
 assertEqual(ThreePlusThree.Commuted.Right.self, N3.self)
 assertEqual(ThreePlusThree.Commuted.Total.self, N6.self)
 
+// MARK: - 15. Associativity of addition (ProofSeed)
+//
+// Associativity -- (a + b) + c = a + (b + c) -- is a binary theorem: it
+// requires TWO addition proofs (one for a+b, one for the result plus c).
+// Swift protocols can only do induction on one type parameter. The
+// ProofSeed technique solves this by encoding one proof as a seed type
+// and doing induction on the other parameter.
+//
+// Given P1 witnessing a + b = d, wrapping it in c layers of PlusSucc
+// (via AddAssociative) yields a proof of a + (b + c) = d + c.
+// If we also have P2 witnessing d + c = e, the two Totals agree --
+// confirming (a + b) + c = a + (b + c).
+//
+// Universality is twofold: parametric over P1 (any proof) and inductive
+// over c (any natural).
+
+// The generic constraint proves universality: every chain
+// AddOne^c(ProofSeed<P>) satisfies AddAssociative.
+func useAssociativity<N: AddAssociative>(_: N.Type) {}
+useAssociativity(ProofSeed<PlusZero<N0>>.self)
+useAssociativity(AddOne<AddOne<ProofSeed<ThreePlusTwo>>>.self)
+
+// Example 1: (3 + 2) + 0 = 3 + (2 + 0) = 5
+// P1 = ThreePlusTwo: 3 + 2 = 5, extended by c = 0 (trivial)
+typealias Assoc3p2p0 = ProofSeed<ThreePlusTwo>
+assertEqual(Assoc3p2p0.AssocProof.Left.self, N3.self)      // a = 3
+assertEqual(Assoc3p2p0.AssocProof.Right.self, N2.self)      // b + c = 2 + 0 = 2
+assertEqual(Assoc3p2p0.AssocProof.Total.self, N5.self)      // d + c = 5 + 0 = 5
+// The other side: (3+2) + 0 = 5 + 0 = 5
+assertEqual(Assoc3p2p0.AssocProof.Total.self, PlusZero<N5>.Total.self)
+
+// Example 2: (3 + 2) + 4 = 3 + (2 + 4) = 3 + 6 = 9
+// P1 = ThreePlusTwo: 3 + 2 = 5, extended by c = 4
+typealias Assoc3p2p4 = AddOne<AddOne<AddOne<AddOne<ProofSeed<ThreePlusTwo>>>>>
+assertEqual(Assoc3p2p4.AssocProof.Left.self, N3.self)       // a = 3
+assertEqual(Assoc3p2p4.AssocProof.Right.self, N6.self)      // b + c = 2 + 4 = 6
+assertEqual(Assoc3p2p4.AssocProof.Total.self, N9.self)      // d + c = 5 + 4 = 9
+// The other side: (3+2) + 4 = 5 + 4 = 9
+typealias FivePlusFour = PlusSucc<PlusSucc<PlusSucc<PlusSucc<PlusZero<N5>>>>>
+assertEqual(Assoc3p2p4.AssocProof.Total.self, FivePlusFour.Total.self)
+
+// Example 3: (2 + 3) + 2 = 2 + (3 + 2) = 2 + 5 = 7
+// P1 = TwoPlusThree: 2 + 3 = 5, extended by c = 2
+typealias Assoc2p3p2 = AddOne<AddOne<ProofSeed<TwoPlusThree>>>
+assertEqual(Assoc2p3p2.AssocProof.Left.self, N2.self)       // a = 2
+assertEqual(Assoc2p3p2.AssocProof.Right.self, N5.self)      // b + c = 3 + 2 = 5
+assertEqual(Assoc2p3p2.AssocProof.Total.self, N7.self)      // d + c = 5 + 2 = 7
+// The other side: (2+3) + 2 = 5 + 2 = 7
+typealias FivePlusTwo = PlusSucc<PlusSucc<PlusZero<N5>>>
+assertEqual(Assoc2p3p2.AssocProof.Total.self, FivePlusTwo.Total.self)
+
 // MARK: - Epilogue
 //
 // If you're reading this, the program compiled and exited cleanly. That
@@ -492,9 +543,10 @@ assertEqual(ThreePlusThree.Commuted.Total.self, N6.self)
 // witness type satisfied its protocol constraints. The compiler verified
 // 90+ mathematical facts about natural numbers, their arithmetic,
 // continued fractions, the Leibniz series, the golden ratio / Fibonacci
-// correspondence, the sqrt(2) CF / matrix construction, and three
+// correspondence, the sqrt(2) CF / matrix construction, and four
 // universal addition theorems (left zero identity, successor-left shift,
-// commutativity) -- all without executing a single computation at runtime.
+// commutativity, and associativity) -- all without executing a single
+// computation at runtime.
 //
 // See docs/future-work-inductive-proofs-and-irrationals.md for what
 // comes next: universal proofs for multiplication, coinductive streams

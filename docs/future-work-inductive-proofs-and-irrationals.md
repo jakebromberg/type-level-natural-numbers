@@ -343,7 +343,9 @@ protocol Commutative {
 
 But there is no way to have `AddOne` conditionally conform to this for all values of `M` simultaneously. Each conditional conformance fixes the structure of one generic parameter, not two. We would need a protocol parameterized by both, which Swift protocols do not support.
 
-**Possible workaround**: A macro could generate conformances for all pairs up to a fixed bound, giving a finite approximation to the universal statement. This is not a proof for all naturals, but it could catch errors in the formulation.
+**Partial solution (ProofSeed)**: The `ProofSeed` technique solves the two-variable problem for associativity. `ProofSeed<P>` wraps a `NaturalSum` proof as a `Natural`, and `AddAssociative` does induction over `AddOne` layers on top. Given P witnessing `a + b = d`, `AddOne^c(ProofSeed<P>).AssocProof = PlusSucc^c(P)` witnesses `a + (b + c) = d + c`. Universality is parametric over P (any proof) and inductive over c (any natural). This avoids the two-parameter protocol problem by encoding one axis as a type parameter and inducting over the other.
+
+**Remaining limitation**: A macro could generate conformances for all pairs up to a fixed bound, giving a finite approximation to the universal statement. This is not a proof for all naturals, but it could catch errors in the formulation.
 
 ### 5.3 No negative reasoning or case analysis
 

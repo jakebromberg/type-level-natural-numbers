@@ -14,7 +14,7 @@ Sources/
     CayleyDickson.swift                      -- Cayley-Dickson construction (Algebra marker protocol, CayleyDickson type)
     ContinuedFractions.swift                 -- Fraction, GCFConvergent (CF convergents), LeibnizPartialSum (Leibniz series), Matrix2x2, Mat2, Sqrt2MatStep (matrix construction)
     Fibonacci.swift                          -- FibState, FibVerified, Fib0, FibStep (Fibonacci recurrence witnesses)
-    AdditionTheorems.swift                   -- universal addition theorems (AddLeftZero, SuccLeftAdd, AddCommutative)
+    AdditionTheorems.swift                   -- universal addition theorems (AddLeftZero, SuccLeftAdd, AddCommutative, AddAssociative via ProofSeed)
     Macros.swift                             -- macro declarations (@ProductConformance, @FibonacciProof, @PiConvergenceProof, @GoldenRatioProof, @Sqrt2ConvergenceProof)
   AbuseOfNotationMacros/                     -- .macro target: compiler plugin
     Plugin.swift                             -- CompilerPlugin entry point
@@ -70,6 +70,8 @@ swift test                       # run macro expansion tests
 - The macro is the proof SEARCH (arbitrary integer computation at compile time); the type checker is the proof VERIFIER (structural constraint verification).
 - Universal theorems use conditional conformance as structural induction: a base case on `Zero`/`PlusZero` and an inductive step on `AddOne`/`PlusSucc`. Protocols use plain associated types (no `where` clauses) following the `_TimesNk` pattern to avoid rewrite system limits; correctness is enforced structurally by the conformance definitions.
 - `AddLeftZero` proves `0 + n = n` for all n. `SuccLeftAdd` proves `a + b = c => S(a) + b = S(c)` for all proofs. `AddCommutative` proves `a + b = c => b + a = c` for all proofs (combines the first two).
+- `ProofSeed<P>` is a `Natural`-conforming enum that wraps a `NaturalSum` proof as a base case for inductive proof extension. Analogous to `Seed<A>` but wraps a proof instead of a number.
+- `AddAssociative` proves associativity: given P witnessing `a + b = d`, `AddOne^c(ProofSeed<P>).AssocProof = PlusSucc^c(P)` witnesses `a + (b + c) = d + c`. Universality is parametric over P and inductive over c.
 
 ## Branching
 
@@ -77,3 +79,4 @@ swift test                       # run macro expansion tests
 - `witness-based-proofs` -- PR 1: paradigm shift from runtime computation to witness-based proofs.
 - `macro-cleanup` -- PR 2: removes computational macros, Xcode target, updates docs.
 - `continued-fractions` -- PR 3: golden ratio CF/Fibonacci and sqrt(2) CF/matrix correspondence proofs.
+- `addition-associativity` -- PR for issue #29: associativity of addition via ProofSeed.
