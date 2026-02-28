@@ -538,15 +538,47 @@ assertEqual(Assoc2p3p2.AssocProof.Total.self, FivePlusTwo.Total.self)
 
 // MARK: - 16. Universal multiplication theorems (structural induction)
 //
-// Multiplication theorems require where clauses on the protocol's associated
-// type, unlike addition theorems. This is because TimesSucc has where
-// constraints (AddProof.Left == MulProof.Total, AddProof.Right == MulProof.Left)
-// that the compiler must verify at each inductive step. The where clauses
-// constrain to the concrete type Zero, so they don't trigger the rewrite
-// system issues that motivated the "no where clauses" convention.
+// TimesSucc has where clauses that trigger rewrite system explosion when
+// composed in inductive protocols. The flat encoding (TimesTick/TimesGroup)
+// decomposes each multiplication step into individual successor operations,
+// like PlusSucc does for addition. The two encodings coexist -- both
+// conform to NaturalProduct.
 
-// Theorem: 0 * n = 0 (left zero annihilation)
+// -- Flat multiplication proofs --
+// For a * b, we need b groups of a ticks each.
+// Example: 2 * 3 = 6
+//   TimesZero<N2>                                           L=2 R=0 T=0
+//   TimesTick<TimesTick<...>>                               L=2 R=0 T=2
+//   TimesGroup (marks one copy of 2)                        L=2 R=1 T=2
+//   TimesTick<TimesTick<...>>                               L=2 R=1 T=4
+//   TimesGroup (marks second copy)                          L=2 R=2 T=4
+//   TimesTick<TimesTick<...>>                               L=2 R=2 T=6
+//   TimesGroup (marks third copy)                           L=2 R=3 T=6
+
+typealias FlatMul2x0 = TimesZero<N2>
+typealias FlatMul2x1 = TimesGroup<TimesTick<TimesTick<FlatMul2x0>>>
+typealias FlatMul2x2 = TimesGroup<TimesTick<TimesTick<FlatMul2x1>>>
+typealias FlatMul2x3 = TimesGroup<TimesTick<TimesTick<FlatMul2x2>>>
+
+assertEqual(FlatMul2x0.Left.self, N2.self)
+assertEqual(FlatMul2x0.Right.self, N0.self)
+assertEqual(FlatMul2x0.Total.self, N0.self)     // 2 * 0 = 0
+
+assertEqual(FlatMul2x1.Left.self, N2.self)
+assertEqual(FlatMul2x1.Right.self, N1.self)
+assertEqual(FlatMul2x1.Total.self, N2.self)     // 2 * 1 = 2
+
+assertEqual(FlatMul2x2.Left.self, N2.self)
+assertEqual(FlatMul2x2.Right.self, N2.self)
+assertEqual(FlatMul2x2.Total.self, N4.self)     // 2 * 2 = 4
+
+assertEqual(FlatMul2x3.Left.self, N2.self)
+assertEqual(FlatMul2x3.Right.self, N3.self)
+assertEqual(FlatMul2x3.Total.self, N6.self)     // 2 * 3 = 6
+
+// -- Theorem 1: 0 * n = 0 (left zero annihilation, using TimesGroup) --
 // Proved by: extension Zero: MulLeftZero + extension AddOne: MulLeftZero
+// With Left = 0, each group has 0 ticks, so just wrap with TimesGroup.
 func useLeftZeroMul<N: MulLeftZero>(_: N.Type) {}
 useLeftZeroMul(N0.self)
 useLeftZeroMul(N5.self)
@@ -565,18 +597,41 @@ assertEqual(N9.ZeroTimesProof.Left.self, Zero.self)     // 0 * 9: left = 0
 assertEqual(N9.ZeroTimesProof.Right.self, N9.self)      // 0 * 9: right = 9
 assertEqual(N9.ZeroTimesProof.Total.self, N0.self)      // 0 * 9 = 0
 
+// -- Theorem 2: a * b = c => S(a) * b = c + b (successor-left multiplication) --
+// Proved by: TimesZero/TimesTick/TimesGroup conformances to SuccLeftMul
+// Each TimesGroup gains one extra TimesTick, so b groups contribute b extra
+// ticks: Total goes from c to c + b.
+func useSuccLeftMul<P: SuccLeftMul>(_: P.Type) {}
+useSuccLeftMul(TimesZero<N5>.self)
+useSuccLeftMul(FlatMul2x3.self)
+
+// TimesZero<N5>: 5 * 0 = 0  =>  6 * 0 = 0
+assertEqual(TimesZero<N5>.Distributed.Left.self, N6.self)
+assertEqual(TimesZero<N5>.Distributed.Right.self, N0.self)
+assertEqual(TimesZero<N5>.Distributed.Total.self, N0.self)
+
+// FlatMul2x3: 2 * 3 = 6  =>  3 * 3 = 6 + 3 = 9
+assertEqual(FlatMul2x3.Distributed.Left.self, N3.self)
+assertEqual(FlatMul2x3.Distributed.Right.self, N3.self)
+assertEqual(FlatMul2x3.Distributed.Total.self, N9.self)
+
+// FlatMul2x2: 2 * 2 = 4  =>  3 * 2 = 4 + 2 = 6
+assertEqual(FlatMul2x2.Distributed.Left.self, N3.self)
+assertEqual(FlatMul2x2.Distributed.Right.self, N2.self)
+assertEqual(FlatMul2x2.Distributed.Total.self, N6.self)
+
 // MARK: - Epilogue
 //
 // If you're reading this, the program compiled and exited cleanly. That
 // means every assertEqual call above unified its type arguments and every
 // witness type satisfied its protocol constraints. The compiler verified
-// 90+ mathematical facts about natural numbers, their arithmetic,
+// 100+ mathematical facts about natural numbers, their arithmetic,
 // continued fractions, the Leibniz series, the golden ratio / Fibonacci
 // correspondence, the sqrt(2) CF / matrix construction, four universal
 // addition theorems (left zero identity, successor-left shift,
-// commutativity, and associativity), and one universal multiplication
-// theorem (left zero annihilation) -- all without executing a single
-// computation at runtime.
+// commutativity, and associativity), and two universal multiplication
+// theorems (left zero annihilation, successor-left multiplication) -- all
+// without executing a single computation at runtime.
 //
 // See docs/future-work-inductive-proofs-and-irrationals.md for what
 // comes next: universal proofs for multiplication, coinductive streams

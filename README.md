@@ -208,17 +208,32 @@ Universality is twofold: parametric over the seed proof (any `NaturalSum`) and i
 
 ## Universal multiplication theorems
 
-Unlike the addition theorems (which compose freely because `PlusSucc` has no where clauses), multiplication theorems face a composition obstacle: `TimesSucc` has where clauses (`AddProof.Left == MulProof.Total`, `AddProof.Right == MulProof.Left`) that trigger rewrite system explosion when used in inductive protocols. The solution is derived lemma types that specialize `TimesSucc` for specific cases.
+Unlike the addition theorems (which compose freely because `PlusSucc` has no where clauses), multiplication theorems face a composition obstacle: `TimesSucc` has where clauses that trigger rewrite system explosion when used in inductive protocols. The flat encoding (`TimesTick`/`TimesGroup`) solves this by decomposing each multiplication step into individual successor operations, like `PlusSucc` does for addition:
+
+- **`TimesTick<P>`**: adds 1 to Total (one successor within a "copy of Left"). No where clauses.
+- **`TimesGroup<P>`**: adds 1 to Right (one complete copy of Left added). No where clauses.
+
+For `a * b`, the proof has b groups of a ticks each. The flat encoding and `TimesSucc` coexist -- both conform to `NaturalProduct`.
 
 ### Left zero annihilation: `0 * n = 0`
 
-`TimesZero<N>` proves `N * 0 = 0`, but `0 * N = 0` requires induction on N. The inductive step uses `TimesZeroLeft`, a derived lemma that encodes `0 * S(B) = 0` given `0 * B = 0`:
+With Left = 0, each group has 0 ticks, so the inductive step is just `TimesGroup` wrapping the previous proof:
 
 ```swift
-// TimesZeroLeft: derived lemma specializing 0 * S(B) = 0*B + 0 = 0 + 0 = 0
 // MulLeftZero: for any N, there is a NaturalProduct witnessing 0 * N = 0
 extension Zero: MulLeftZero { ... }                         // base case
 extension AddOne: MulLeftZero where Predecessor: MulLeftZero { ... }  // inductive step
+```
+
+### Successor-left multiplication: `a * b = c => S(a) * b = c + b`
+
+Each `TimesGroup` gains one extra `TimesTick`, so b groups contribute b extra ticks. Structurally identical to how `SuccLeftAdd` wraps each `PlusSucc`:
+
+```swift
+// SuccLeftMul: for any flat proof P of a * b = c, there is a proof of S(a) * b = c + b
+extension TimesZero: SuccLeftMul { ... }                    // base case
+extension TimesTick: SuccLeftMul where Proof: SuccLeftMul { ... }  // tick step
+extension TimesGroup: SuccLeftMul where Proof: SuccLeftMul { ... }  // group step (inserts extra tick)
 ```
 
 ## sqrt(2) CF and matrix construction
